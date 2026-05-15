@@ -128,9 +128,17 @@ async def startup_event():
             lm_studio_enabled=config.lm_studio_enabled,
             ollama_host=config.ollama_host,
             ollama_model=config.ollama_model,
-            ollama_enabled=config.ollama_enabled
+            ollama_enabled=config.ollama_enabled,
+            opencode_api_key=config.opencode_api_key,
+            opencode_model=config.opencode_model,
+            opencode_base_url=config.opencode_base_url,
+            opencode_enabled=config.opencode_enabled,
+            anthropic_api_key=config.anthropic_api_key,
+            anthropic_model=config.anthropic_model,
+            anthropic_base_url=config.anthropic_base_url,
+            anthropic_enabled=bool(config.anthropic_api_key)
         )
-        logger.info(f"Compliance extractor initialized (LM Studio: {config.lm_studio_enabled}, Ollama: {config.ollama_enabled}, OpenAI: {config.openai_enabled})")
+        logger.info(f"Compliance extractor initialized (Anthropic: {bool(config.anthropic_api_key)}, OpenCode Zen: {config.opencode_enabled}, OpenAI: {config.openai_enabled})")
         
         # Start WebSocket heartbeat task
         asyncio.create_task(start_heartbeat_task())

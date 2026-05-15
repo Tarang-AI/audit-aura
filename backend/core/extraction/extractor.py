@@ -19,11 +19,32 @@ class ComplianceExtractor:
     
     def __init__(self, openai_api_key: str = None, openai_enabled: bool = False,
                  lm_studio_host: str = "http://localhost:1234",
-                 lm_studio_model: str = "google/gemma-2-9b", lm_studio_enabled: bool = True,
+                 lm_studio_model: str = "google/gemma-2-9b", lm_studio_enabled: bool = False,
                  ollama_host: str = "http://ollama:11434",
-                 ollama_model: str = "phi4-mini", ollama_enabled: bool = False):
+                 ollama_model: str = "phi4-mini", ollama_enabled: bool = False,
+                 opencode_api_key: str = None, opencode_model: str = "minimax-2.5-free",
+                 opencode_base_url: str = "https://api.opencode.ai/v1", opencode_enabled: bool = False,
+                 anthropic_api_key: str = None, anthropic_model: str = "minimax-m2.5-free",
+                 anthropic_base_url: str = "https://opencode.ai/zen", anthropic_enabled: bool = True):
         self.openai_enabled = openai_enabled
         self.client = OpenAI(api_key=openai_api_key) if (openai_enabled and openai_api_key) else None
+        
+        self.opencode_enabled = opencode_enabled
+        self.opencode_api_key = opencode_api_key
+        self.opencode_model = opencode_model
+        self.opencode_base_url = opencode_base_url
+        self.opencode_client = OpenAI(api_key=opencode_api_key, base_url=opencode_base_url) if (opencode_enabled and opencode_api_key) else None
+
+        self.anthropic_enabled = anthropic_enabled
+        self.anthropic_api_key = anthropic_api_key
+        self.anthropic_model = anthropic_model
+        self.anthropic_base_url = anthropic_base_url
+        if anthropic_enabled and anthropic_api_key:
+            from anthropic import Anthropic
+            self.anthropic_client = Anthropic(api_key=anthropic_api_key, base_url=anthropic_base_url)
+        else:
+            self.anthropic_client = None
+
         self.lm_studio_host = lm_studio_host
         self.lm_studio_model = lm_studio_model
         self.lm_studio_enabled = lm_studio_enabled
@@ -33,29 +54,32 @@ class ComplianceExtractor:
         self.ollama_enabled = ollama_enabled
         self.ollama_available = self._check_ollama() if ollama_enabled else False
         
-        
         enabled_methods = sum([
             self.lm_studio_enabled,
             self.openai_enabled,
-            self.ollama_enabled
+            self.ollama_enabled,
+            self.opencode_enabled,
+            self.anthropic_enabled
         ])
 
-        if enabled_methods != 1:
-            raise ValueError(
-                "Exactly one extraction method must be enabled"
-            )
-
-# Validate that at least one extraction method is enabled
-        if not self.lm_studio_enabled and not self.openai_enabled and not self.ollama_enabled:
-            raise ValueError("At least one extraction method must be enabled (LM_STUDIO_ENABLED, OPENAI_ENABLED, or OLLAMA_ENABLED)")
+        if enabled_methods == 0:
+            raise ValueError("At least one extraction method must be enabled (ANTHROPIC_ENABLED, OPENCODE_ENABLED, LM_STUDIO_ENABLED, OPENAI_ENABLED, or OLLAMA_ENABLED)")
         
         # Log which extraction method will be used
-        if self.lm_studio_enabled and self.lm_studio_available:
+        if self.anthropic_enabled and self.anthropic_client:
+            logger.info(f"Using OpenCode Zen Anthropic-Compatible for extraction ({self.anthropic_model})")
+        elif self.opencode_enabled and self.opencode_client:
+            logger.info(f"Using OpenCode Zen for extraction ({self.opencode_model})")
+        elif self.lm_studio_enabled and self.lm_studio_available:
             logger.info(f"Using LM Studio for extraction ({self.lm_studio_model})")
         elif self.ollama_enabled and self.ollama_available:
             logger.info(f"Using Ollama for extraction ({self.ollama_model})")
         elif self.openai_enabled and self.client:
             logger.info("Using OpenAI for extraction")
+        elif self.anthropic_enabled and not self.anthropic_client:
+            raise ValueError("Anthropic/OpenCode Zen is enabled but API key is not configured")
+        elif self.opencode_enabled and not self.opencode_client:
+            raise ValueError("OpenCode Zen is enabled but API key is not configured")
         elif self.lm_studio_enabled and not self.lm_studio_available:
             raise ValueError("LM Studio is enabled but not available. Please start LM Studio or disable it.")
         elif self.ollama_enabled and not self.ollama_available:
@@ -142,6 +166,118 @@ Text:
 {text}
 """
     
+    def _extract_with_anthropic(self, text: str) -> List[Dict[str, Any]]:
+        """Extract controls using Anthropic/OpenCode Zen Anthropic-Compatible"""
+        try:
+            import json
+            prompt = self.extraction_prompt.format(text=text)
+            
+            response = self.anthropic_client.messages.create(
+                model=self.anthropic_model,
+                max_tokens=2000,
+                temperature=0,
+                system="You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON objects containing a 'controls' array.",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+            
+            content = response.content[0].text
+            if not content:
+                return []
+            
+            # Clean markdown if present
+            cleaned = re.sub(r'```(?:json)?|```', '', content).strip()
+            
+            # Extract JSON object safely
+            start = cleaned.find('{')
+            end = cleaned.rfind('}')
+            if start != -1 and end != -1:
+                cleaned = cleaned[start:end + 1]
+            
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict) and 'controls' in parsed:
+                return parsed['controls']
+            elif isinstance(parsed, list):
+                return parsed
+            return []
+        except Exception as e:
+            logger.error(f"Anthropic extraction failed: {e}")
+            return []
+
+    def _extract_with_opencode(self, text: str) -> List[Dict[str, Any]]:
+        """Extract controls using OpenCode Zen"""
+        try:
+            import json
+            prompt = self.extraction_prompt.format(text=text)
+            response = self.opencode_client.chat.completions.create(
+                model=self.opencode_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON objects containing a 'controls' array."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0,
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            if not content:
+                return []
+            
+            parsed = json.loads(content.strip())
+            if isinstance(parsed, dict) and 'controls' in parsed:
+                return parsed['controls']
+            elif isinstance(parsed, list):
+                return parsed
+            return []
+        except Exception as e:
+            logger.error(f"OpenCode extraction failed: {e}")
+            return []
+
+    def _extract_with_openai(self, text: str) -> List[Dict[str, Any]]:
+        """Extract controls using OpenAI"""
+        try:
+            import json
+            prompt = self.extraction_prompt.format(text=text)
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON objects containing a 'controls' array."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0,
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            if not content:
+                return []
+            
+            parsed = json.loads(content.strip())
+            if isinstance(parsed, dict) and 'controls' in parsed:
+                return parsed['controls']
+            elif isinstance(parsed, list):
+                return parsed
+            return []
+        except Exception as e:
+            logger.error(f"OpenAI extraction failed: {e}")
+            return []
+
     def _check_lm_studio(self) -> bool:
         """Check if LM Studio is available"""
         try:
@@ -570,132 +706,33 @@ Text:
                 chunk_controls = None
                 
                 # Use only the configured extraction method
-                if self.lm_studio_enabled:
-                    if not self.lm_studio_available:
-                        raise ValueError(
-                            f"LM Studio is enabled but not available at {self.lm_studio_host}"
-                        )
+                if self.anthropic_enabled:
+                    if not self.anthropic_client:
+                        raise ValueError("Anthropic/OpenCode Zen is enabled but API key is not configured")
+                    logger.info(f"Using Anthropic/OpenCode Zen for chunk {i+1}")
+                    chunk_controls = self._extract_with_anthropic(chunk)
 
+                elif self.opencode_enabled:
+                    if not self.opencode_client:
+                        raise ValueError("OpenCode Zen is enabled but API key is not configured")
+                    logger.info(f"Using OpenCode Zen for chunk {i+1}")
+                    chunk_controls = self._extract_with_opencode(chunk)
+
+                elif self.lm_studio_enabled:
+                    if not self.lm_studio_available:
+                        raise ValueError(f"LM Studio is enabled but not available at {self.lm_studio_host}")
                     logger.info(f"Using LM Studio for chunk {i+1}")
                     chunk_controls = self._extract_with_lm_studio(chunk)
 
                 elif self.openai_enabled:
                     if not self.client:
-                        raise ValueError(
-                            "OpenAI is enabled but API key is not configured"
-                        )
-
+                        raise ValueError("OpenAI is enabled but API key is not configured")
                     logger.info(f"Using OpenAI for chunk {i+1}")
+                    chunk_controls = self._extract_with_openai(chunk)
 
-
-                    # Use OpenAI
-                    try:
-                        logger.info(f"Using OpenAI for chunk {i+1}")
-                        response = self.client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": "You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON arrays only."
-                                },
-                                {
-                                    "role": "user",
-                                    "content": prompt
-                                }
-                            ],
-                            temperature=0,
-                            response_format={"type": "json_object"}
-                        )
-                        
-                        content = response.choices[0].message.content
-                        if not content:
-                            logger.error(f"Empty response from OpenAI for chunk {i+1}")
-                            continue
-                        
-                        content = content.strip()
-                        logger.debug(f"AI Response length: {len(content)} chars")
-                        logger.debug(f"AI Response preview: {content[:200]}...")
-                        
-                        # Parse JSON response with improved strategies for OpenAI v2.x
-                        controls = None
-                        
-                        # Strategy 1: Parse as JSON object (expected format with response_format)
-                        try:
-                            parsed = json.loads(content)
-                            if isinstance(parsed, dict):
-                                # Check for controls key (our expected format)
-                                if 'controls' in parsed and isinstance(parsed['controls'], list):
-                                    controls = parsed['controls']
-                                    logger.debug(f"Strategy 1 success: Found {len(controls)} controls in 'controls' key")
-                                # Check for other common keys
-                                elif any(key in parsed for key in ['items', 'data', 'results']):
-                                    for key in ['items', 'data', 'results']:
-                                        if key in parsed and isinstance(parsed[key], list):
-                                            controls = parsed[key]
-                                            logger.debug(f"Strategy 1 success: Found {len(controls)} controls in '{key}' key")
-                                            break
-                            elif isinstance(parsed, list):
-                                # Direct array response (shouldn't happen with json_object mode)
-                                controls = parsed
-                                logger.debug(f"Strategy 1 success: Direct array with {len(controls)} controls")
-                        except json.JSONDecodeError as e:
-                            logger.debug(f"Strategy 1 failed: {e}")
-                        
-                        # Strategy 2: Clean markdown and retry
-                        if not controls:
-                            try:
-                                # Remove markdown code blocks
-                                cleaned = re.sub(r'```json\s*|\s*```', '', content)
-                                cleaned = cleaned.strip()
-                                parsed = json.loads(cleaned)
-                                if isinstance(parsed, dict) and 'controls' in parsed:
-                                    controls = parsed['controls']
-                                    logger.debug(f"Strategy 2 success: Found {len(controls)} controls after cleaning")
-                                elif isinstance(parsed, list):
-                                    controls = parsed
-                                    logger.debug(f"Strategy 2 success: Direct array with {len(controls)} controls")
-                            except json.JSONDecodeError as e:
-                                logger.debug(f"Strategy 2 failed: {e}")
-                        
-                        # Strategy 3: Extract JSON object with regex
-                        if not controls:
-                            try:
-                                # Find JSON object
-                                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                                if json_match:
-                                    parsed = json.loads(json_match.group())
-                                    if isinstance(parsed, dict) and 'controls' in parsed:
-                                        controls = parsed['controls']
-                                        logger.debug(f"Strategy 3 success: Found {len(controls)} controls via regex")
-                            except (json.JSONDecodeError, AttributeError) as e:
-                                logger.debug(f"Strategy 3 failed: {e}")
-                        
-                        # Strategy 4: Try to extract array directly
-                        if not controls:
-                            try:
-                                json_match = re.search(r'\[.*\]', content, re.DOTALL)
-                                if json_match:
-                                    controls = json.loads(json_match.group())
-                                    logger.debug(f"Strategy 4 success: Found {len(controls)} controls via array regex")
-                            except (json.JSONDecodeError, AttributeError) as e:
-                                logger.debug(f"Strategy 4 failed: {e}")
-                        
-                        if controls and isinstance(controls, list):
-                            chunk_controls = controls
-                            logger.info(f"OpenAI extracted {len(controls)} controls from chunk {i+1}")
-                        else:
-                            logger.error(f"All JSON parsing strategies failed for chunk {i+1}")
-                            logger.error(f"Raw content (first 1000 chars): {content[:1000]}")
-                    except Exception as e:
-                        logger.error(f"OpenAI extraction failed for chunk {i+1}: {e}")
-                        raise
-                
                 elif self.ollama_enabled:
                     if not self.ollama_available:
-                        raise ValueError(
-                            f"Ollama is enabled but not available at {self.lm_studio_host}"
-                        )
-
+                        raise ValueError(f"Ollama is enabled but not available at {self.ollama_host}")
                     logger.info(f"Using Ollama for chunk {i+1}")
                     chunk_controls = self._extract_with_ollama(chunk)
                 

@@ -1122,7 +1122,6 @@ const AdminDashboard: React.FC = () => {
         </div>
       </CollapsibleSection>
     </div>
-    </>
   );
 };
 

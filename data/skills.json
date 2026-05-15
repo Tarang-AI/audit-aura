@@ -32,8 +32,8 @@
     "standard": "SOC2",
     "severity": "critical",
     "enabled": true,
-    "created_at": "2026-05-15T15:13:12.657406+00:00",
-    "updated_at": "2026-05-15T15:13:12.657413+00:00"
+    "created_at": "2026-05-15T15:37:13.892520+00:00",
+    "updated_at": "2026-05-15T15:37:13.892527+00:00"
   },
   "detect_test_002": {
     "skill_id": "detect_test_002",
@@ -44,8 +44,8 @@
     "standard": "SOC2",
     "severity": "high",
     "enabled": true,
-    "created_at": "2026-05-15T15:13:12.657578+00:00",
-    "updated_at": "2026-05-15T15:13:12.657581+00:00"
+    "created_at": "2026-05-15T15:37:13.892677+00:00",
+    "updated_at": "2026-05-15T15:37:13.892679+00:00"
   },
   "detect_test_003": {
     "skill_id": "detect_test_003",
@@ -56,8 +56,8 @@
     "standard": "ISO27001",
     "severity": "medium",
     "enabled": true,
-    "created_at": "2026-05-15T15:13:12.657702+00:00",
-    "updated_at": "2026-05-15T15:13:12.657704+00:00"
+    "created_at": "2026-05-15T15:37:13.892775+00:00",
+    "updated_at": "2026-05-15T15:37:13.892777+00:00"
   },
   "detect_test_004": {
     "skill_id": "detect_test_004",
@@ -68,7 +68,7 @@
     "standard": "SOC2",
     "severity": "high",
     "enabled": true,
-    "created_at": "2026-05-15T15:13:12.657816+00:00",
-    "updated_at": "2026-05-15T15:13:12.657818+00:00"
+    "created_at": "2026-05-15T15:37:13.892864+00:00",
+    "updated_at": "2026-05-15T15:37:13.892865+00:00"
   }
 }

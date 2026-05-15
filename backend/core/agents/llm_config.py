@@ -24,7 +24,9 @@ def get_llm(model_name: str = None, temperature: float = 0.1):
     
     # If no model name provided, determine from config (priority order)
     if not model_name:
-        if config.gemini_enabled:
+        if config.anthropic_api_key:
+            model_name = config.anthropic_model
+        elif config.gemini_enabled:
             model_name = config.gemini_model
         elif config.opencode_enabled:
             model_name = config.opencode_model
@@ -37,6 +39,16 @@ def get_llm(model_name: str = None, temperature: float = 0.1):
         else:
             model_name = "gpt-3.5-turbo"  # fallback
     
+    # Check if using Anthropic (or OpenCode Zen Anthropic-Compatible)
+    if config.anthropic_api_key and (model_name == config.anthropic_model or "claude" in model_name.lower() or "minimax-m" in model_name.lower()):
+        from langchain_anthropic import ChatAnthropic
+        return ChatAnthropic(
+            model=model_name,
+            temperature=temperature,
+            api_key=config.anthropic_api_key,
+            base_url=config.anthropic_base_url
+        )
+
     # Check if Gemini model
     if "gemini" in model_name.lower():
         # Ensure model name doesn't have redundant 'models/' prefix

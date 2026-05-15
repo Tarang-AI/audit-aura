@@ -6,6 +6,12 @@ import os
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 import logging
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +34,7 @@ class Config(BaseModel):
     # LM Studio Configuration
     lm_studio_host: str = Field(default='http://localhost:1234')
     lm_studio_model: str = Field(default='google/gemma-2-9b')
-    lm_studio_enabled: bool = Field(default=True)
+    lm_studio_enabled: bool = Field(default=False)
     
     # Google Gemini Configuration
     google_api_key: Optional[str] = Field(default=None)
@@ -37,9 +43,15 @@ class Config(BaseModel):
     
     # OpenCode.ai Zen Configuration
     opencode_api_key: Optional[str] = Field(default=None)
-    opencode_model: str = Field(default='zen-1.0')
+    opencode_model: str = Field(default='minimax-2.5-free')
     opencode_base_url: str = Field(default='https://api.opencode.ai/v1')
-    opencode_enabled: bool = Field(default=False)
+    opencode_enabled: bool = Field(default=True)
+    
+    # Anthropic/OpenCode Zen Anthropic-Compatible Configuration
+    anthropic_api_key: Optional[str] = Field(default=None)
+    anthropic_model: str = Field(default='minimax-m2.5-free')
+    anthropic_base_url: str = Field(default='https://opencode.ai/zen')
+    enable_tool_search: bool = Field(default=False)
     
     # Email Configuration
     smtp_host: Optional[str] = Field(default=None)
@@ -138,9 +150,13 @@ def load_config() -> Config:
             gemini_model=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash'),
             gemini_enabled=os.getenv('GEMINI_ENABLED', 'false').lower() == 'true',
             opencode_api_key=os.getenv('OPENCODE_API_KEY'),
-            opencode_model=os.getenv('OPENCODE_MODEL', 'zen-1.0'),
+            opencode_model=os.getenv('OPENCODE_MODEL', 'minimax-2.5-free'),
             opencode_base_url=os.getenv('OPENCODE_BASE_URL', 'https://api.opencode.ai/v1'),
-            opencode_enabled=os.getenv('OPENCODE_ENABLED', 'false').lower() == 'true',
+            opencode_enabled=os.getenv('OPENCODE_ENABLED', 'true').lower() == 'true',
+            anthropic_api_key=os.getenv('ANTHROPIC_API_KEY'),
+            anthropic_model=os.getenv('ANTHROPIC_MODEL', 'minimax-m2.5-free'),
+            anthropic_base_url=os.getenv('ANTHROPIC_BASE_URL', 'https://opencode.ai/zen'),
+            enable_tool_search=os.getenv('ENABLE_TOOL_SEARCH', 'false').lower() == 'true',
             smtp_host=os.getenv('SMTP_HOST'),
             smtp_port=int(os.getenv('SMTP_PORT', '587')),
             smtp_user=os.getenv('SMTP_USER'),

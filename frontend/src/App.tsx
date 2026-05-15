@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate as BaseNavigate } from 'react-router-dom';
+import { withAppId } from './utils/appParam';
+
+const Navigate = ({ to, ...props }: any) => <BaseNavigate {...props} to={withAppId(to)} />;
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingSpinner } from './components/LoadingSpinner';

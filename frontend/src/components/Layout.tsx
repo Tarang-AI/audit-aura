@@ -1,5 +1,6 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { AppLink as Link } from './AppLink';
 import { Shield, LogOut, Menu, X, Bell, Settings, BarChart3, FileText, Users, AlertTriangle, GitPullRequest, Activity, Cloud, Zap } from 'lucide-react';
 import { theme } from '@/config/theme';
 

@@ -116,7 +116,8 @@ export const useComplianceStore = create<ComplianceState>()(
         
         // Fetch real data from API
         try {
-          const response = await fetch('http://localhost:8000/dashboard');
+          const { withAppId } = await import('@/utils/appParam');
+          const response = await fetch(withAppId('/dashboard'));
           if (response.ok) {
             const data = await response.json();
             

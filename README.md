@@ -23,6 +23,12 @@ AuditAura provides:
 - **Dynamic Compliance Tracking**: Real-time compliance percentage per audit standard
 - **Auto-Remediation**: AI-generated fix recommendations and GitHub PR creation
 
+## 👥 Team AuditAura
+- **Durgadas** - Team Lead & Backend Architect
+- **Team Member 1** - Frontend Developer
+- **Team Member 2** - Cloud & DevOps
+- **Team Member 3** - UI/UX Designer
+
 ## ✨ Features
 
 ### Core Capabilities
@@ -143,9 +149,16 @@ docker-compose up --build
 ```
 
 4. **Access the application**
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:8000 (Preserves `app` parameter)
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
+
+### 🏗️ Semicolons Deployment Alignment
+This repository is pre-configured for the Semicolons 2026 deployment portal:
+- **Port Exposure**: The application is configured to expose itself on **port 8000** as required.
+- **App Query Parameter**: The frontend is built to preserve the `app` query parameter across navigation and API calls. This is critical for the shared DNS routing model used during the event.
+- **Database Injection**: Backend consumes the `DATABASE_URL` environment variable injected by the portal, with a local SQLite fallback for development.
+- **LLM Integration**: Integrated with the OpenCode Zen (Anthropic Bridge) model provided centrally.
 
 ## 🎨 New UI Features
 

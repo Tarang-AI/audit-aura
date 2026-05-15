@@ -16,7 +16,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     // Mock authentication - in production, this would call an API
     localStorage.setItem('user', JSON.stringify({ email, name: 'Demo User' }));
-    navigate('/select-role');
+    const { withAppId } = await import('@/utils/appParam');
+    navigate(withAppId('/select-role'));
   };
 
   return (

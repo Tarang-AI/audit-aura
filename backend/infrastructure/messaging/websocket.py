@@ -6,7 +6,7 @@ import asyncio
 import json
 from typing import Set, Dict, Any
 from fastapi import WebSocket
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ class WebSocketManager:
         self.active_connections.add(websocket)
         self.connection_metadata[websocket] = {
             "role": user_role,
-            "connected_at": datetime.utcnow().isoformat(),
-            "last_ping": datetime.utcnow().isoformat()
+            "connected_at": datetime.now(timezone.utc).isoformat(),
+            "last_ping": datetime.now(timezone.utc).isoformat()
         }
         logger.info(f"WebSocket connected: {user_role} (Total: {len(self.active_connections)})")
         
@@ -35,7 +35,7 @@ class WebSocketManager:
             "type": "connection",
             "status": "connected",
             "message": "Connected to AuditAura real-time alerts",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }, websocket)
         
     def disconnect(self, websocket: WebSocket):
@@ -78,7 +78,7 @@ class WebSocketManager:
             "type": "violation",
             "severity": violation.get("severity", "medium"),
             "data": violation,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         await self.broadcast(message)
         logger.info(f"Broadcasted violation: {violation.get('control_id', 'unknown')}")
@@ -88,7 +88,7 @@ class WebSocketManager:
         message = {
             "type": "compliance_update",
             "data": compliance_data,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         await self.broadcast(message)
         logger.info(f"Broadcasted compliance update")
@@ -98,7 +98,7 @@ class WebSocketManager:
         message = {
             "type": "pr_update",
             "data": pr_data,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         await self.broadcast(message)
         logger.info(f"Broadcasted PR update: {pr_data.get('number', 'unknown')}")
@@ -108,7 +108,7 @@ class WebSocketManager:
         message = {
             "type": "remediation",
             "data": remediation_data,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         await self.broadcast(message)
         logger.info(f"Broadcasted remediation action")
@@ -117,7 +117,7 @@ class WebSocketManager:
         """Send periodic heartbeat to all connections"""
         message = {
             "type": "heartbeat",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "active_connections": len(self.active_connections)
         }
         await self.broadcast(message)

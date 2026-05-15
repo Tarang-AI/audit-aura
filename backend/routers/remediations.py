@@ -4,7 +4,7 @@ API endpoints for managing remediation approvals
 """
 import logging
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel, Field
 
@@ -219,7 +219,7 @@ async def approve_remediation(
         if decision.action == 'approve_automated':
             execution_details = {
                 'execution_status': 'queued',
-                'execution_time': datetime.utcnow().isoformat(),
+                'execution_time': datetime.now(timezone.utc).isoformat(),
                 'automated': True,
                 'steps': remediation['request']['remediation_details'].get('automated_steps', [])
             }
@@ -283,7 +283,7 @@ async def execute_remediation(remediation_id: str):
         execution_result = {
             'remediation_id': remediation_id,
             'execution_status': 'in_progress',
-            'started_at': datetime.utcnow().isoformat(),
+            'started_at': datetime.now(timezone.utc).isoformat(),
             'steps_completed': 0,
             'total_steps': len(remediation['request']['remediation_details'].get('automated_steps', [])),
             'message': 'Remediation execution started'
@@ -362,7 +362,7 @@ async def _broadcast_approval_decision(
                 'comments': decision.comments,
                 'bucket_name': remediation['request']['violation_summary']['bucket_name'],
                 'drift_type': remediation['request']['violation_summary']['drift_type'],
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         }
         
@@ -384,5 +384,5 @@ async def remediation_health():
         'status': 'healthy',
         'service': 'remediation_approval',
         'pending_remediations': len(pending),
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }

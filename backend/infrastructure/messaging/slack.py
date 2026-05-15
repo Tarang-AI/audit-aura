@@ -5,7 +5,7 @@ Sends alerts to Slack channels via webhooks
 import logging
 import aiohttp
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ class SlackNotifier:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Time:*\n{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                        "text": f"*Time:*\n{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
                     }
                 ]
             },
@@ -203,7 +203,7 @@ class SlackNotifier:
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f"Updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    "text": f"Updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
                 }
             ]
         })

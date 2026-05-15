@@ -6,7 +6,7 @@ import json
 import logging
 import shutil
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import hashlib
 
@@ -75,7 +75,7 @@ class EvidenceManager:
         if not source_path.exists():
             raise FileNotFoundError(f"Evidence file not found: {file_path}")
         
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         evidence_id = f"evidence_{timestamp.strftime('%Y%m%d_%H%M%S')}_{violation_id}"
         
         # Create violation-specific directory
@@ -138,7 +138,7 @@ class EvidenceManager:
                 
                 evidence['verified'] = True
                 evidence['verified_by'] = verified_by
-                evidence['verified_at'] = datetime.utcnow().isoformat()
+                evidence['verified_at'] = datetime.now(timezone.utc).isoformat()
                 self._save_metadata()
                 logger.info(f"Verified evidence: {evidence_id}")
                 return True

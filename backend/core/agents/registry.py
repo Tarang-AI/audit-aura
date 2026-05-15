@@ -5,7 +5,7 @@ Manages incident tracking in database
 import sqlite3
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import logging
@@ -69,7 +69,7 @@ def upsert_incident(
     cursor.execute("SELECT * FROM incidents WHERE incident_id = ?", (incident_id,))
     existing = cursor.fetchone()
     
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     
     if existing:
         fields = []

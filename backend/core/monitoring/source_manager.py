@@ -5,7 +5,7 @@ Creates event sources dynamically from stored connections
 import logging
 import asyncio
 from typing import Dict, List, Optional, AsyncIterator, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from infrastructure.cloud.connection_manager import get_connection_manager
 from core.monitoring.event_sources import (
@@ -236,7 +236,7 @@ class DynamicEventSourceManager:
                 self.connection_manager.update_connection_stats(
                     conn_id,
                     events_processed=1,
-                    last_event_at=datetime.utcnow()
+                    last_event_at=datetime.now(timezone.utc)
                 )
                 break
             

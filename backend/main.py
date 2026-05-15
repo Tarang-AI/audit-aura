@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import configuration
 from config import get_config
@@ -486,7 +486,7 @@ async def list_stored_pdfs():
             files_info.append({
                 "filename": pdf_path.name,
                 "size_bytes": stat.st_size,
-                "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "modified_time": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
                 "path": str(pdf_path)
             })
         
@@ -562,7 +562,7 @@ async def enable_skill(skill_id: str):
             'data': {
                 'skill_id': skill_id,
                 'enabled': True,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         })
         
@@ -614,7 +614,7 @@ async def disable_skill(skill_id: str):
             'data': {
                 'skill_id': skill_id,
                 'enabled': False,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         })
         
@@ -885,7 +885,7 @@ async def get_live_compliance_score():
         scores = mock_service.get_compliance_scores(live=True)
         return {
             "scores": scores,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "simulation_enabled": True
         }
     except Exception as e:
@@ -983,7 +983,7 @@ async def continuous_monitoring():
                                 "standard": violation.get('standard'),
                                 "severity": violation.get('severity'),
                                 "description": violation.get('description'),
-                                "timestamp": datetime.utcnow().isoformat()
+                                "timestamp": datetime.now(timezone.utc).isoformat()
                             },
                             "event": {
                                 "source": event.get('source'),
@@ -1414,7 +1414,7 @@ async def websocket_endpoint(websocket: WebSocket, role: str = "guest"):
                 if msg_type == "ping":
                     await ws_manager.send_personal_message({
                         "type": "pong",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now(timezone.utc).isoformat()
                     }, websocket)
                     
                 elif msg_type == "subscribe":
@@ -1422,7 +1422,7 @@ async def websocket_endpoint(websocket: WebSocket, role: str = "guest"):
                     await ws_manager.send_personal_message({
                         "type": "subscribed",
                         "events": message.get("events", []),
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now(timezone.utc).isoformat()
                     }, websocket)
                     
             except json.JSONDecodeError:
@@ -1446,7 +1446,7 @@ async def get_websocket_stats():
             "security": ws_manager.get_connections_by_role("security"),
             "guest": ws_manager.get_connections_by_role("guest")
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 

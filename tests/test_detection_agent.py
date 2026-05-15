@@ -4,7 +4,8 @@ Tests the detection system with mock events
 """
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+import pytest
 
 # Setup logging
 logging.basicConfig(
@@ -14,6 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.asyncio
 async def test_detection_agent():
     """Test the skill-based detection agent"""
     
@@ -100,7 +102,7 @@ async def test_detection_agent():
         {
             'source': 'aws',
             'event_name': 'PutBucketPolicy',
-            'event_time': datetime.utcnow().isoformat(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
             'resource_type': 's3_bucket',
             'resource_name': 'test-bucket-public',
             'public': True,  # VIOLATION
@@ -110,7 +112,7 @@ async def test_detection_agent():
         {
             'source': 'aws',
             'event_name': 'CreateBucket',
-            'event_time': datetime.utcnow().isoformat(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
             'resource_type': 's3_bucket',
             'resource_name': 'test-bucket-unencrypted',
             'public': False,
@@ -120,7 +122,7 @@ async def test_detection_agent():
         {
             'source': 'aws',
             'event_name': 'ModifyDBInstance',
-            'event_time': datetime.utcnow().isoformat(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
             'resource_type': 'rds_instance',
             'resource_name': 'test-db-no-backup',
             'public': False,
@@ -131,7 +133,7 @@ async def test_detection_agent():
         {
             'source': 'aws',
             'event_name': 'AuthorizeSecurityGroupIngress',
-            'event_time': datetime.utcnow().isoformat(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
             'resource_type': 'security_group',
             'resource_name': 'test-sg-open',
             'allows_all_traffic': True,  # VIOLATION
@@ -141,7 +143,7 @@ async def test_detection_agent():
         {
             'source': 'aws',
             'event_name': 'CreateBucket',
-            'event_time': datetime.utcnow().isoformat(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
             'resource_type': 's3_bucket',
             'resource_name': 'test-bucket-compliant',
             'public': False,

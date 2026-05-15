@@ -4,7 +4,7 @@ Auditor Agent - Compliance Evaluation and Violation Detection
 import os
 import json
 import chromadb
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
@@ -174,7 +174,7 @@ def auditor_node(state: GraphState) -> GraphState:
         execution_entries.append({
             "node": "auditor",
             "message": msg,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "details": ev
         })
 

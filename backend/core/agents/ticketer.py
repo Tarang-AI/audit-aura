@@ -4,7 +4,7 @@ Ticketer Agent - Incident and Change Ticket Management
 import os
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .state import GraphState
@@ -50,7 +50,7 @@ def create_incident_node(state: GraphState) -> GraphState:
 **Audit Type:** {framework}
 **Control Impacted:** {control_id}
 **Detected Entity:** {entity}
-**Detection Time:** {datetime.now().isoformat()}
+**Detection Time:** {datetime.now(timezone.utc).isoformat()}
 
 ## Summary
 The system has detected a potential compliance violation under the **{framework}** framework and initialized this forensic record. 
@@ -74,7 +74,7 @@ The following raw logs were captured during the detection phase.
     execution_entry = {
         "node": "ticketer",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"ticket_id": ticket_id, "type": "incident"}
     }
     
@@ -104,7 +104,7 @@ def create_change_node(state: GraphState) -> GraphState:
     execution_entry = {
         "node": "ticketer",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"ticket_id": ticket_id, "type": "change"}
     }
     
@@ -141,7 +141,7 @@ def resolve_incident_node(state: GraphState) -> GraphState:
     execution_entry = {
         "node": "ticketer",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"status": "resolved" if status == "Success" else "open"}
     }
     

@@ -4,7 +4,7 @@ Tracks and calculates compliance percentages per audit standard
 """
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class ComplianceTracker:
         self.violations: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         self.violation_history: List[Dict[str, Any]] = []
         self.compliance_scores: Dict[str, float] = {}
-        self.last_update = datetime.utcnow()
+        self.last_update = datetime.now(timezone.utc)
     
     def register_controls(self, controls: List[Dict[str, Any]]):
         """
@@ -65,7 +65,7 @@ class ComplianceTracker:
         
         if existing_violation:
             # Update existing violation timestamp and event
-            existing_violation['last_seen'] = datetime.utcnow().isoformat()
+            existing_violation['last_seen'] = datetime.now(timezone.utc).isoformat()
             existing_violation['occurrence_count'] = existing_violation.get('occurrence_count', 1) + 1
             existing_violation['event'] = event  # Update with latest event
             logger.info(
@@ -81,8 +81,8 @@ class ComplianceTracker:
             'category': violation.get('category'),
             'severity': violation.get('severity'),
             'description': violation.get('control_description', violation.get('description', '')),
-            'timestamp': datetime.utcnow().isoformat(),
-            'last_seen': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'last_seen': datetime.now(timezone.utc).isoformat(),
             'occurrence_count': 1,
             'event': event,
             'resolved': False,
@@ -139,7 +139,7 @@ class ComplianceTracker:
         for violation in self.violations[standard]:
             if violation['control_id'] == control_id and not violation['resolved']:
                 violation['resolved'] = True
-                violation['resolved_at'] = datetime.utcnow().isoformat()
+                violation['resolved_at'] = datetime.now(timezone.utc).isoformat()
                 logger.info(f"Resolved violation: {control_id}")
                 break
         
@@ -269,7 +269,7 @@ class ComplianceTracker:
         Returns:
             Trend data
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         # Filter violations within time range
         recent_violations = [
@@ -347,7 +347,7 @@ class ComplianceTracker:
             score = max(0, 100.0 - (violation_impact / total_controls * 100))
             self.compliance_scores[standard] = round(score, 2)
         
-        self.last_update = datetime.utcnow()
+        self.last_update = datetime.now(timezone.utc)
 
 
 # Global tracker instance

@@ -3,7 +3,7 @@ Remediator Agent - Automated Fix Execution
 """
 import subprocess
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .state import GraphState
@@ -65,7 +65,7 @@ def remediator_node(state: GraphState) -> GraphState:
     execution_entry = {
         "node": "remediator",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"script": recommended_action, "status": status}
     }
         

@@ -1,0 +1,74 @@
+{
+  "test_skill_001": {
+    "skill_id": "test_skill_001",
+    "name": "Test Skill",
+    "description": "A test skill for verification",
+    "category": "detection",
+    "control_id": "TEST-001",
+    "standard": "TEST",
+    "severity": "medium",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:13.420663+00:00",
+    "updated_at": "2026-05-15T15:13:13.421971+00:00"
+  },
+  "detect_test_int_001": {
+    "skill_id": "detect_test_int_001",
+    "name": "Detect: Integration test control",
+    "description": "Integration test control",
+    "category": "detection",
+    "control_id": "TEST-INT-001",
+    "standard": "TEST",
+    "severity": "low",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:13.424988+00:00",
+    "updated_at": "2026-05-15T15:13:13.424995+00:00"
+  },
+  "detect_test_001": {
+    "skill_id": "detect_test_001",
+    "name": "Detect: S3 buckets must not be publicly accessible",
+    "description": "S3 buckets must not be publicly accessible",
+    "category": "detection",
+    "control_id": "TEST-001",
+    "standard": "SOC2",
+    "severity": "critical",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:12.657406+00:00",
+    "updated_at": "2026-05-15T15:13:12.657413+00:00"
+  },
+  "detect_test_002": {
+    "skill_id": "detect_test_002",
+    "name": "Detect: Storage resources must have encryption enabled",
+    "description": "Storage resources must have encryption enabled",
+    "category": "detection",
+    "control_id": "TEST-002",
+    "standard": "SOC2",
+    "severity": "high",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:12.657578+00:00",
+    "updated_at": "2026-05-15T15:13:12.657581+00:00"
+  },
+  "detect_test_003": {
+    "skill_id": "detect_test_003",
+    "name": "Detect: Databases must have backup enabled",
+    "description": "Databases must have backup enabled",
+    "category": "detection",
+    "control_id": "TEST-003",
+    "standard": "ISO27001",
+    "severity": "medium",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:12.657702+00:00",
+    "updated_at": "2026-05-15T15:13:12.657704+00:00"
+  },
+  "detect_test_004": {
+    "skill_id": "detect_test_004",
+    "name": "Detect: Security groups must not allow all traffic",
+    "description": "Security groups must not allow all traffic",
+    "category": "detection",
+    "control_id": "TEST-004",
+    "standard": "SOC2",
+    "severity": "high",
+    "enabled": true,
+    "created_at": "2026-05-15T15:13:12.657816+00:00",
+    "updated_at": "2026-05-15T15:13:12.657818+00:00"
+  }
+}

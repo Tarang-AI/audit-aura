@@ -5,7 +5,7 @@ Handles ingestion from CloudWatch, IBM Cloud, and other sources
 import logging
 import json
 from typing import Dict, Any, List, Optional, AsyncIterator
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -192,7 +192,7 @@ class IBMCloudEventSource(EventSource):
         
         try:
             # Query events from last 1 minute
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             start_time = end_time - timedelta(minutes=1)
             
             headers = {
@@ -220,7 +220,7 @@ class IBMCloudEventSource(EventSource):
                     transformed_event = {
                         'source': 'ibm_cloud_activity_tracker',
                         'source_instance': f'ibm-at-{self.region}',
-                        'event_time': event.get('eventTime', datetime.utcnow().isoformat()),
+                        'event_time': event.get('eventTime', datetime.now(timezone.utc).isoformat()),
                         'event_name': event.get('action', 'unknown'),
                         'action': event.get('action', 'unknown'),
                         'outcome': event.get('outcome', 'unknown'),

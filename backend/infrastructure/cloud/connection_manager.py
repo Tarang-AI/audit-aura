@@ -6,7 +6,7 @@ import json
 import logging
 import uuid
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from models.cloud_connection import (
@@ -66,7 +66,7 @@ class ConnectionManager:
                 'connections': [
                     conn.dict() for conn in self.connections.values()
                 ],
-                'updated_at': datetime.utcnow().isoformat()
+                'updated_at': datetime.now(timezone.utc).isoformat()
             }
             with open(self.storage_path, 'w') as f:
                 json.dump(data, f, indent=2, default=str)
@@ -102,8 +102,8 @@ class ConnectionManager:
                 enabled=connection_data.enabled,
                 status=ConnectionStatus.INACTIVE,
                 config_encrypted=encrypted_config,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             
             # Store connection
@@ -197,7 +197,7 @@ class ConnectionManager:
                 encrypted_config = self.encryption_service.encrypt(update_data.config)
                 connection.config_encrypted = encrypted_config
             
-            connection.updated_at = datetime.utcnow()
+            connection.updated_at = datetime.now(timezone.utc)
             
             self._save_connections()
             
@@ -273,7 +273,7 @@ class ConnectionManager:
         try:
             # Update status to testing
             connection.status = ConnectionStatus.TESTING
-            connection.last_tested_at = datetime.utcnow()
+            connection.last_tested_at = datetime.now(timezone.utc)
             
             # Get decrypted config
             config = self.get_decrypted_config(connection_id)
@@ -293,7 +293,7 @@ class ConnectionManager:
                 result = ConnectionTestResponse(
                     success=False,
                     message=f"Unsupported provider: {connection.provider}",
-                    tested_at=datetime.utcnow()
+                    tested_at=datetime.now(timezone.utc)
                 )
             
             # Update connection status
@@ -323,7 +323,7 @@ class ConnectionManager:
             return ConnectionTestResponse(
                 success=False,
                 message=f"Test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     async def _test_aws_connection(self, config: Dict[str, Any]) -> ConnectionTestResponse:
@@ -352,20 +352,20 @@ class ConnectionManager:
                     'user_id': identity.get('UserId'),
                     'arn': identity.get('Arn')
                 },
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
             
         except ClientError as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"AWS authentication failed: {e.response['Error']['Message']}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
         except Exception as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"AWS connection test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     async def _test_ibm_cloud_connection(self, config: Dict[str, Any]) -> ConnectionTestResponse:
@@ -393,20 +393,20 @@ class ConnectionManager:
                         'token_type': token_data.get('token_type'),
                         'expires_in': token_data.get('expires_in')
                     },
-                    tested_at=datetime.utcnow()
+                    tested_at=datetime.now(timezone.utc)
                 )
             else:
                 return ConnectionTestResponse(
                     success=False,
                     message=f"IBM Cloud authentication failed: {response.text}",
-                    tested_at=datetime.utcnow()
+                    tested_at=datetime.now(timezone.utc)
                 )
                 
         except Exception as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"IBM Cloud connection test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     async def _test_azure_connection(self, config: Dict[str, Any]) -> ConnectionTestResponse:
@@ -438,14 +438,14 @@ class ConnectionManager:
                     'subscription_id': config.get('subscription_id'),
                     'tenant_id': config.get('tenant_id')
                 },
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"Azure connection test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     async def _test_gcp_connection(self, config: Dict[str, Any]) -> ConnectionTestResponse:
@@ -474,14 +474,14 @@ class ConnectionManager:
                 details={
                     'project_id': config.get('project_id')
                 },
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"GCP connection test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     async def _test_generic_connection(self, config: Dict[str, Any]) -> ConnectionTestResponse:
@@ -513,20 +513,20 @@ class ConnectionManager:
                         'status_code': response.status_code,
                         'endpoint': config.get('endpoint_url')
                     },
-                    tested_at=datetime.utcnow()
+                    tested_at=datetime.now(timezone.utc)
                 )
             else:
                 return ConnectionTestResponse(
                     success=False,
                     message=f"Connection returned status {response.status_code}",
-                    tested_at=datetime.utcnow()
+                    tested_at=datetime.now(timezone.utc)
                 )
                 
         except Exception as e:
             return ConnectionTestResponse(
                 success=False,
                 message=f"Generic connection test failed: {str(e)}",
-                tested_at=datetime.utcnow()
+                tested_at=datetime.now(timezone.utc)
             )
     
     def _to_response(self, connection: CloudConnection) -> CloudConnectionResponse:

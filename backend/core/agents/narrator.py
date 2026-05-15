@@ -3,7 +3,7 @@ Narrator Agent - Evidence Report Generation
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -87,7 +87,7 @@ Keep the report professional and suitable for audit purposes.
         description = latest_eval.get("Thought", "Compliance violation detected.")
         
         first_log = logs[0] if logs else {}
-        when_detected = first_log.get("timestamp", datetime.now().isoformat())
+        when_detected = first_log.get("timestamp", datetime.now(timezone.utc).isoformat())
 
         chain = prompt | llm | StrOutputParser()
         
@@ -124,7 +124,7 @@ Keep the report professional and suitable for audit purposes.
     execution_entry = {
         "node": "narrator",
         "message": f"Compliance evidence report persisted for {incident_id}.",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"file": str(file_path) if file_path else "N/A"}
     }
         

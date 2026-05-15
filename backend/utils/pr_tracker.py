@@ -4,7 +4,7 @@ Tracks pull requests related to compliance violations and monitors their status
 """
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 
@@ -78,8 +78,8 @@ class PRTracker:
             "author": author,
             "repository": repository,
             "status": "open",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
             "merged_at": None,
             "closed_at": None,
             "files_changed": [],
@@ -122,7 +122,7 @@ class PRTracker:
         for pr in self._data["prs"]:
             if pr["id"] == pr_id:
                 pr["status"] = status
-                pr["updated_at"] = datetime.utcnow().isoformat()
+                pr["updated_at"] = datetime.now(timezone.utc).isoformat()
                 
                 if merged_at:
                     pr["merged_at"] = merged_at

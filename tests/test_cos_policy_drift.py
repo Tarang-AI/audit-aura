@@ -4,7 +4,8 @@ Simulates a COS bucket policy change event and tests the complete flow
 """
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+import pytest
 from backend.core.detection.agent import get_detection_system
 from backend.core.detection.skills.detection.cos_policy_drift import COSPolicyDriftDetectionSkill
 from backend.core.detection.skills.analysis.policy_drift_impact import PolicyDriftImpactAnalysisSkill
@@ -16,7 +17,7 @@ def create_mock_cos_event(bucket_name: str, public: bool = True, encryption_enab
     return {
         'source': 'ibm_cloud',
         'event_name': 'PutBucketPolicy',
-        'event_time': datetime.utcnow().isoformat(),
+        'event_time': datetime.now(timezone.utc).isoformat(),
         'username': 'test-user@example.com',
         'resource_type': 'cos_bucket',
         'resource_name': bucket_name,
@@ -38,6 +39,7 @@ def create_mock_cos_event(bucket_name: str, public: bool = True, encryption_enab
     }
 
 
+@pytest.mark.asyncio
 async def test_cos_policy_drift_detection():
     """Test the complete COS policy drift detection flow"""
     print("=" * 80)

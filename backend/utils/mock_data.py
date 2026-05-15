@@ -7,7 +7,7 @@ import os
 import random
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 class MockDataService:
     """Service for managing mock data with live compliance score simulation"""
@@ -130,14 +130,14 @@ class MockDataService:
             return False
         
         if self._last_update is None:
-            self._last_update = datetime.now()
+            self._last_update = datetime.now(timezone.utc)
             return True
         
         interval = config.get("update_interval_seconds", 30)
-        elapsed = (datetime.now() - self._last_update).total_seconds()
+        elapsed = (datetime.now(timezone.utc) - self._last_update).total_seconds()
         
         if elapsed >= interval:
-            self._last_update = datetime.now()
+            self._last_update = datetime.now(timezone.utc)
             return True
         
         return False

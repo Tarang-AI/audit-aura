@@ -4,7 +4,7 @@ Detects when COS bucket policies are changed to allow public access
 """
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from ..core.base import Skill, SkillResult, SkillCategory
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class COSPolicyDriftDetectionSkill(Skill):
                         'remediation': self._generate_remediation(bucket_name, drift_details),
                         'skill_id': self.skill_id,
                         'skill_name': self.name,
-                        'detected_at': datetime.utcnow().isoformat()
+                        'detected_at': datetime.now(timezone.utc).isoformat()
                     },
                     requires_followup=True,
                     followup_skills=['analyze_security_impact', 'generate_remediation']
@@ -140,7 +140,7 @@ class COSPolicyDriftDetectionSkill(Skill):
             'access_control': event.get('access_control', 'private'),
             'cors_enabled': event.get('cors_enabled', False),
             'lifecycle_rules': event.get('lifecycle_rules', []),
-            'timestamp': event.get('event_time', datetime.utcnow().isoformat())
+            'timestamp': event.get('event_time', datetime.now(timezone.utc).isoformat())
         }
         
         # Extract from nested policy object if present

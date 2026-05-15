@@ -5,7 +5,7 @@ Multi-Agent Compliance Workflow
 from typing import Literal
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .state import GraphState
 from .sensor import sensor_node
@@ -54,7 +54,7 @@ def approval_node(state: GraphState) -> GraphState:
     """
     msg = "Awaiting Human-in-the-Loop approval for Critical violation."
     log_agent_action("system", "Approval Required", msg)
-    return {"execution_log": [{"node": "approval", "message": msg, "timestamp": datetime.now().isoformat()}]}
+    return {"execution_log": [{"node": "approval", "message": msg, "timestamp": datetime.now(timezone.utc).isoformat()}]}
 
 
 def route_to_remediation(state: GraphState) -> Literal["approval", "remediator"]:
@@ -74,7 +74,7 @@ def manual_fix_node(state: GraphState) -> GraphState:
     """
     msg = "Autonomous remediation exhausted. Escalating for manual fix by security team."
     log_agent_action("system", "Manual Fix Required", msg)
-    return {"execution_log": [{"node": "manual_fix", "message": msg, "timestamp": datetime.now().isoformat()}]}
+    return {"execution_log": [{"node": "manual_fix", "message": msg, "timestamp": datetime.now(timezone.utc).isoformat()}]}
 
 
 def build_graph():

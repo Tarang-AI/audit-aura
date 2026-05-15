@@ -5,7 +5,7 @@ Implements skill-based architecture for detection, analysis, and remediation
 import logging
 from typing import Dict, Any, List, Optional
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 import json
 
@@ -41,7 +41,7 @@ class SkillResult:
         self.details = details or {}
         self.requires_followup = requires_followup
         self.followup_skills = followup_skills or []
-        self.timestamp = datetime.utcnow().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -228,7 +228,7 @@ class SkillBasedAgent:
     ):
         """Record skill execution for analytics"""
         execution_record = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'skill_id': skill.skill_id,
             'skill_name': skill.name,
             'category': skill.category.value,

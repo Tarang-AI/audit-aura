@@ -2,7 +2,7 @@
 Validator Agent - Remediation Verification
 """
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .state import GraphState
 from .logger import log_agent_action
@@ -49,7 +49,7 @@ def validator_node(state: GraphState) -> GraphState:
     execution_entry = {
         "node": "validator",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"status": status, "retry_count": retry_count}
     }
         

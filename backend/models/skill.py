@@ -5,7 +5,7 @@ Stores skill metadata and enable/disable state
 import json
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,8 @@ class SkillMetadata:
         self.standard = standard
         self.severity = severity
         self.enabled = enabled
-        self.created_at = created_at or datetime.utcnow().isoformat()
-        self.updated_at = updated_at or datetime.utcnow().isoformat()
+        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
+        self.updated_at = updated_at or datetime.now(timezone.utc).isoformat()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -125,7 +125,7 @@ class SkillPersistence:
         skill = self.skills.get(skill_id)
         if skill:
             skill.enabled = True
-            skill.updated_at = datetime.utcnow().isoformat()
+            skill.updated_at = datetime.now(timezone.utc).isoformat()
             self._save()
             logger.info(f"Enabled skill: {skill_id}")
             return True
@@ -136,7 +136,7 @@ class SkillPersistence:
         skill = self.skills.get(skill_id)
         if skill:
             skill.enabled = False
-            skill.updated_at = datetime.utcnow().isoformat()
+            skill.updated_at = datetime.now(timezone.utc).isoformat()
             self._save()
             logger.info(f"Disabled skill: {skill_id}")
             return True

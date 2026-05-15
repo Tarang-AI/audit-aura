@@ -5,7 +5,7 @@ Generates compliance audit reports in various formats
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import csv
 from io import StringIO
@@ -65,7 +65,7 @@ class ReportGenerator:
         Returns:
             Report metadata including file path
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         report_id = f"report_{timestamp.strftime('%Y%m%d_%H%M%S')}"
         
         # Generate report content based on format
@@ -132,7 +132,7 @@ class ReportGenerator:
             'report_metadata': {
                 'type': report_type,
                 'standard': standard,
-                'generated_at': datetime.utcnow().isoformat(),
+                'generated_at': datetime.now(timezone.utc).isoformat(),
                 'version': '1.0'
             },
             'executive_summary': {
@@ -163,7 +163,7 @@ class ReportGenerator:
         
         # Header
         writer.writerow(['Compliance Audit Report'])
-        writer.writerow(['Generated:', datetime.utcnow().isoformat()])
+        writer.writerow(['Generated:', datetime.now(timezone.utc).isoformat()])
         writer.writerow(['Standard:', standard or 'All Standards'])
         writer.writerow([])
         
@@ -223,7 +223,7 @@ class ReportGenerator:
 </head>
 <body>
     <h1>Compliance Audit Report</h1>
-    <p><strong>Generated:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+    <p><strong>Generated:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
     <p><strong>Standard:</strong> {standard or 'All Standards'}</p>
     
     <div class="summary">

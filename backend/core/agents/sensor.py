@@ -1,7 +1,7 @@
 """
 Sensor Agent - Log Ingestion and Normalization
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from .state import GraphState
 from .logger import log_agent_action
@@ -27,7 +27,7 @@ def normalize_log(raw_log: Dict[str, Any]) -> Dict[str, Any]:
         "event_type": raw_log.get("type") or raw_log.get("eventName") or "unknown",
         "resource_id": raw_log.get("resource") or raw_log.get("requestParameters", {}).get("bucketName") or "unknown",
         "user_identity": raw_log.get("user") or raw_log.get("userIdentity", {}).get("arn") or "unknown",
-        "timestamp": raw_log.get("time") or raw_log.get("eventTime") or datetime.now().isoformat(),
+        "timestamp": raw_log.get("time") or raw_log.get("eventTime") or datetime.now(timezone.utc).isoformat(),
         "action": raw_log.get("action") or raw_log.get("eventName") or "unknown",
         "raw_details": raw_log
     }
@@ -53,7 +53,7 @@ def sensor_node(state: GraphState) -> GraphState:
     execution_entry = {
         "node": "sensor",
         "message": msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": {"raw_count": len(raw_logs)}
     }
     

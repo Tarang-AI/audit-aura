@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Dict, Any, Optional
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class NotificationService:
     ) -> Dict[str, Any]:
         """Format alert data"""
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "type": "violation",
             "severity": violation.get("severity", "medium"),
             "control_id": violation.get("control_id", "Unknown"),

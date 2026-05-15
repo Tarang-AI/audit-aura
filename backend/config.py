@@ -4,7 +4,7 @@ Handles environment variables and application settings
 """
 import os
 from typing import Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,72 +14,73 @@ class Config(BaseModel):
     """Application configuration"""
     
     # Encryption Configuration
-    encryption_key: Optional[str] = Field(default=None, env='ENCRYPTION_KEY')
+    encryption_key: Optional[str] = Field(default=None)
     
     # OpenAI Configuration
-    openai_api_key: Optional[str] = Field(default=None, env='OPENAI_API_KEY')
-    openai_enabled: bool = Field(default=False, env='OPENAI_ENABLED')
+    openai_api_key: Optional[str] = Field(default=None)
+    openai_enabled: bool = Field(default=False)
     
     # Ollama Configuration
-    ollama_host: str = Field(default='http://ollama:11434', env='OLLAMA_HOST')
-    ollama_model: str = Field(default='phi4-mini', env='OLLAMA_MODEL')
-    ollama_enabled: bool = Field(default=False, env='OLLAMA_ENABLED')
+    ollama_host: str = Field(default='http://ollama:11434')
+    ollama_model: str = Field(default='phi4-mini')
+    ollama_enabled: bool = Field(default=False)
     
     # LM Studio Configuration
-    lm_studio_host: str = Field(default='http://localhost:1234', env='LM_STUDIO_HOST')
-    lm_studio_model: str = Field(default='google/gemma-2-9b', env='LM_STUDIO_MODEL')
-    lm_studio_enabled: bool = Field(default=True, env='LM_STUDIO_ENABLED')
+    lm_studio_host: str = Field(default='http://localhost:1234')
+    lm_studio_model: str = Field(default='google/gemma-2-9b')
+    lm_studio_enabled: bool = Field(default=True)
     
     # Google Gemini Configuration
-    google_api_key: Optional[str] = Field(default=None, env='GOOGLE_API_KEY')
-    gemini_model: str = Field(default='gemini-1.5-flash', env='GEMINI_MODEL')
-    gemini_enabled: bool = Field(default=False, env='GEMINI_ENABLED')
+    google_api_key: Optional[str] = Field(default=None)
+    gemini_model: str = Field(default='gemini-1.5-flash')
+    gemini_enabled: bool = Field(default=False)
     
     # OpenCode.ai Zen Configuration
-    opencode_api_key: Optional[str] = Field(default=None, env='OPENCODE_API_KEY')
-    opencode_model: str = Field(default='zen-1.0', env='OPENCODE_MODEL')
-    opencode_base_url: str = Field(default='https://api.opencode.ai/v1', env='OPENCODE_BASE_URL')
-    opencode_enabled: bool = Field(default=False, env='OPENCODE_ENABLED')
+    opencode_api_key: Optional[str] = Field(default=None)
+    opencode_model: str = Field(default='zen-1.0')
+    opencode_base_url: str = Field(default='https://api.opencode.ai/v1')
+    opencode_enabled: bool = Field(default=False)
     
     # Email Configuration
-    smtp_host: Optional[str] = Field(default=None, env='SMTP_HOST')
-    smtp_port: int = Field(default=587, env='SMTP_PORT')
-    smtp_user: Optional[str] = Field(default=None, env='SMTP_USER')
-    smtp_password: Optional[str] = Field(default=None, env='SMTP_PASSWORD')
-    smtp_from: str = Field(default='noreply@auditaura.com', env='SMTP_FROM')
+    smtp_host: Optional[str] = Field(default=None)
+    smtp_port: int = Field(default=587)
+    smtp_user: Optional[str] = Field(default=None)
+    smtp_password: Optional[str] = Field(default=None)
+    smtp_from: str = Field(default='noreply@auditaura.com')
     
     # Slack Configuration
-    slack_webhook_url: Optional[str] = Field(default=None, env='SLACK_WEBHOOK_URL')
+    slack_webhook_url: Optional[str] = Field(default=None)
     
     # GitHub Configuration
-    github_token: Optional[str] = Field(default=None, env='GITHUB_TOKEN')
-    github_repo_owner: Optional[str] = Field(default=None, env='GITHUB_REPO_OWNER')
-    github_repo_name: Optional[str] = Field(default=None, env='GITHUB_REPO_NAME')
+    github_token: Optional[str] = Field(default=None)
+    github_repo_owner: Optional[str] = Field(default=None)
+    github_repo_name: Optional[str] = Field(default=None)
     
     # IBM Cloud Configuration
-    ibm_cloud_api_key: Optional[str] = Field(default=None, env='IBM_CLOUD_API_KEY')
-    ibm_cloud_region: str = Field(default='us-south', env='IBM_CLOUD_REGION')
-    ibm_activity_tracker_instance_id: Optional[str] = Field(default=None, env='IBM_ACTIVITY_TRACKER_INSTANCE_ID')
-    ibm_monitoring_instance_id: Optional[str] = Field(default=None, env='IBM_MONITORING_INSTANCE_ID')
-    ibm_logs_instance_id: Optional[str] = Field(default=None, env='IBM_LOGS_INSTANCE_ID')
-    ibm_cloud_enabled: bool = Field(default=False, env='IBM_CLOUD_ENABLED')
+    ibm_cloud_api_key: Optional[str] = Field(default=None)
+    ibm_cloud_region: str = Field(default='us-south')
+    ibm_activity_tracker_instance_id: Optional[str] = Field(default=None)
+    ibm_monitoring_instance_id: Optional[str] = Field(default=None)
+    ibm_logs_instance_id: Optional[str] = Field(default=None)
+    ibm_cloud_enabled: bool = Field(default=False)
     
     # Application Configuration
-    log_level: str = Field(default='INFO', env='LOG_LEVEL')
-    mock_mode: bool = Field(default=True, env='MOCK_MODE')  # Only affects dashboard fallback data, not event sources
-    compliance_check_interval: int = Field(default=30, env='COMPLIANCE_CHECK_INTERVAL')
+    log_level: str = Field(default='INFO')
+    mock_mode: bool = Field(default=True)  # Only affects dashboard fallback data, not event sources
+    compliance_check_interval: int = Field(default=30)
     
     # Database Configuration
-    database_url: Optional[str] = Field(default=None, env='DATABASE_URL')
+    database_url: Optional[str] = Field(default=None)
     
     # Vector Store Configuration
-    vector_store_path: str = Field(default='./data/vector_store', env='VECTOR_STORE_PATH')
+    vector_store_path: str = Field(default='./data/vector_store')
     
     # API Configuration
-    api_host: str = Field(default='0.0.0.0', env='API_HOST')
-    api_port: int = Field(default=8000, env='API_PORT')
+    api_host: str = Field(default='0.0.0.0')
+    api_port: int = Field(default=8000)
     
-    @validator('encryption_key')
+    @field_validator('encryption_key')
+    @classmethod
     def validate_encryption_key(cls, v):
         # Warn if encryption key is not set or is a placeholder
         if not v or v == 'your_encryption_key_here':
@@ -90,31 +91,34 @@ class Config(BaseModel):
             )
         return v
     
-    @validator('openai_api_key')
-    def validate_openai_key(cls, v, values):
+    @field_validator('openai_api_key')
+    @classmethod
+    def validate_openai_key(cls, v, info):
         # Only validate if OpenAI is enabled
-        if values.get('openai_enabled', False):
+        if info.data.get('openai_enabled', False):
             if not v or v == 'your_openai_api_key_here':
                 raise ValueError('OPENAI_API_KEY must be set to a valid API key when OPENAI_ENABLED=true')
         return v
     
-    @validator('log_level')
+    @field_validator('log_level')
+    @classmethod
     def validate_log_level(cls, v):
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         if v.upper() not in valid_levels:
             raise ValueError(f'LOG_LEVEL must be one of {valid_levels}')
         return v.upper()
     
-    @validator('compliance_check_interval')
+    @field_validator('compliance_check_interval')
+    @classmethod
     def validate_interval(cls, v):
         if v < 1:
             raise ValueError('COMPLIANCE_CHECK_INTERVAL must be at least 1 second')
         return v
     
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
-        case_sensitive = False
+    model_config = ConfigDict(
+        protected_namespaces=(),
+        case_sensitive=False
+    )
 
 
 def load_config() -> Config:

@@ -5,8 +5,10 @@ Simulates the backend broadcasting skills_acquired message
 """
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+import pytest
 
+@pytest.mark.asyncio
 async def test_skill_broadcast():
     """Test broadcasting skills acquired message"""
     try:
@@ -48,7 +50,7 @@ async def test_skill_broadcast():
             'data': {
                 'skills': test_skills,
                 'count': len(test_skills),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         }
         

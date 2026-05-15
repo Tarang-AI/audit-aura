@@ -5,7 +5,7 @@ Generates remediation plans that require admin approval before execution
 import logging
 import uuid
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from ..core.base import Skill, SkillResult, SkillCategory
 
 logger = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ class ApprovalBasedRemediationSkill(Skill):
             'request': approval_request,
             'violation_details': violation_details,
             'analysis_data': analysis_data,
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': datetime.now(timezone.utc).isoformat()
         }
         
         logger.info(
@@ -178,7 +178,7 @@ class ApprovalBasedRemediationSkill(Skill):
             'id': approval_id,
             'type': 'remediation_approval',
             'status': 'pending',
-            'created_at': datetime.utcnow().isoformat(),
+            'created_at': datetime.now(timezone.utc).isoformat(),
             'expires_at': self._calculate_approval_deadline(risk_score),
             
             # Violation summary
@@ -668,13 +668,13 @@ class ApprovalBasedRemediationSkill(Skill):
         from datetime import timedelta
         
         if risk_score >= 9:
-            deadline = datetime.utcnow() + timedelta(hours=1)
+            deadline = datetime.now(timezone.utc) + timedelta(hours=1)
         elif risk_score >= 7:
-            deadline = datetime.utcnow() + timedelta(hours=4)
+            deadline = datetime.now(timezone.utc) + timedelta(hours=4)
         elif risk_score >= 5:
-            deadline = datetime.utcnow() + timedelta(hours=24)
+            deadline = datetime.now(timezone.utc) + timedelta(hours=24)
         else:
-            deadline = datetime.utcnow() + timedelta(days=7)
+            deadline = datetime.now(timezone.utc) + timedelta(days=7)
         
         return deadline.isoformat()
     
@@ -730,7 +730,7 @@ class ApprovalBasedRemediationSkill(Skill):
             remediation = self.pending_remediations[approval_id]
             remediation['request']['status'] = status
             remediation['request']['approved_by'] = approver
-            remediation['request']['approved_at'] = datetime.utcnow().isoformat()
+            remediation['request']['approved_at'] = datetime.now(timezone.utc).isoformat()
             remediation['request']['approver_comments'] = comments
             
             logger.info(

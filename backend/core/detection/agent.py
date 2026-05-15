@@ -5,7 +5,7 @@ Monitors cloud connections and detects control breaches using skills
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from core.detection.skills.core.base import (
     Skill,
@@ -165,7 +165,7 @@ class SkillBasedDetectionSystem:
             context = {'event': event}
             results = {
                 'event': event,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'violations': [],
                 'analysis': [],
                 'remediation': []
@@ -245,7 +245,7 @@ class SkillBasedDetectionSystem:
                     },
                     'analysis': results.get('analysis', []),
                     'remediation': results.get('remediation', []),
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             }
             
@@ -262,7 +262,7 @@ class SkillBasedDetectionSystem:
                 'data': {
                     'skills': skills,
                     'count': len(skills),
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             }
             

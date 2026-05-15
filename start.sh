@@ -94,14 +94,6 @@ echo ""
 echo "⏳ Waiting for services to be ready..."
 sleep 5
 
-# Initialize Ollama with llama2 model
-echo ""
-echo "🤖 Initializing Ollama with llama2 model..."
-echo "   (This may take a few minutes on first run)"
-chmod +x scripts/ollama-init.sh
-./scripts/ollama-init.sh &
-OLLAMA_PID=$!
-
 # Check service health
 echo ""
 echo "🏥 Checking service health..."
@@ -119,11 +111,6 @@ if curl -s http://localhost:3000/ > /dev/null 2>&1; then
     echo "✅ Frontend is running"
 else
     echo "⚠️  Frontend not responding yet (may still be starting)"
-fi
-
-# Wait for Ollama initialization to complete (non-blocking)
-if ps -p $OLLAMA_PID > /dev/null 2>&1; then
-    echo "ℹ️  Ollama model download in progress (background)"
 fi
 
 echo ""

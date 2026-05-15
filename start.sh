@@ -34,11 +34,17 @@ fi
 echo "🔍 Checking environment configuration..."
 echo ""
 
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "⚠️  Warning: OPENAI_API_KEY not set"
-    echo "   PDF extraction and AI analysis will be limited"
-    echo "   Set OPENAI_API_KEY in .env file for full functionality"
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo "⚠️  Warning: ANTHROPIC_API_KEY not set (OpenCode Zen)"
+    echo "   PDF extraction and AI analysis will fall back to other providers"
+    echo "   Set ANTHROPIC_API_KEY in .env file for Zen integration"
     echo ""
+else
+    echo "✅ OpenCode Zen (Anthropic) configured"
+fi
+
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "ℹ️  Note: OPENAI_API_KEY not set (optional)"
 else
     echo "✅ OpenAI API key configured"
 fi
@@ -130,13 +136,14 @@ echo "   • Frontend:  http://localhost:3000"
 echo "   • Backend:   http://localhost:8000"
 echo "   • API Docs:  http://localhost:8000/docs"
 echo ""
+echo "💡 Semicolons Portal Tip:"
+echo "   When deployed, remember to append '?app=<your_app_id>' to the URL."
+echo "   The portal routes traffic based on this identifier."
+echo ""
 echo "👤 Login Flow:"
 echo "   1. Navigate to http://localhost:3000"
 echo "   2. Enter any email/password (demo mode)"
-echo "   3. Select your role:"
-echo "      - Administrator: Manage compliance, upload PDFs"
-echo "      - End User: View violations, track compliance"
-echo "      - Auditor: Generate reports, review audits"
+echo "   3. Select your role"
 echo ""
 echo "📊 Features:"
 echo "   • Real-time compliance monitoring"

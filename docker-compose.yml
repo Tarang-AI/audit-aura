@@ -14,6 +14,9 @@ services:
       - LM_STUDIO_HOST=${LM_STUDIO_HOST:-http://localhost:1234}
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL:-google/gemma-2-9b}
       - LM_STUDIO_ENABLED=${LM_STUDIO_ENABLED:-false}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-https://opencode.ai/zen}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-minimax-m2.5-free}
       - MOCK_MODE=${MOCK_MODE:-true}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - COMPLIANCE_CHECK_INTERVAL=${COMPLIANCE_CHECK_INTERVAL:-30}

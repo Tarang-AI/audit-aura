@@ -149,16 +149,21 @@ docker-compose up --build
 ```
 
 4. **Access the application**
-- Frontend: http://localhost:8000 (Preserves `app` parameter)
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+- **Frontend (Local)**: http://localhost:3000 (standard local development)
+- **Frontend (Production Mode)**: http://localhost:8000 (matches deployment exposure)
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+> [!IMPORTANT]
+> When running in the **Semicolons Portal**, you must append `?app=<your_app_id>` to the URL for correct request routing.
 
 ### 🏗️ Semicolons Deployment Alignment
 This repository is pre-configured for the Semicolons 2026 deployment portal:
-- **Port Exposure**: The application is configured to expose itself on **port 8000** as required.
-- **App Query Parameter**: The frontend is built to preserve the `app` query parameter across navigation and API calls. This is critical for the shared DNS routing model used during the event.
-- **Database Injection**: Backend consumes the `DATABASE_URL` environment variable injected by the portal, with a local SQLite fallback for development.
-- **LLM Integration**: Integrated with the OpenCode Zen (Anthropic Bridge) model provided centrally.
+- **Port Exposure**: The application is configured to expose itself on **port 8000** as required by the platform guidelines.
+- **App Query Parameter**: The frontend is built with a custom utility (`appParam.ts`) that captures and persists the `app` identifier from the URL. This is critical for the shared DNS routing model used during the event.
+- **Database Injection**: Backend consumes the `DATABASE_URL` environment variable for RDS connectivity, falling back to SQLite for local development.
+- **LLM Integration**: Integrated with the **OpenCode Zen (Anthropic Bridge)**. Ensure `ANTHROPIC_API_KEY` is set to your Opencode key for full AI functionality.
+- **Health Checks**: Root path `/` on the backend provides a standard health check response for the portal's monitoring.
 
 ## 🎨 New UI Features
 

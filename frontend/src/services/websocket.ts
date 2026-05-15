@@ -1,4 +1,5 @@
 import type { ViolationAlert } from '@/types';
+import { withAppId } from '@/utils/appParam';
 
 type MessageHandler = (data: ViolationAlert) => void;
 type ErrorHandler = (error: Event) => void;
@@ -24,7 +25,6 @@ class WebSocketService {
     }
 
     this.isIntentionallyClosed = false;
-    const { withAppId } = await import('@/utils/appParam');
     
     // Resolve relative URL to absolute WS URL with correct protocol
     let finalUrl = WS_URL;

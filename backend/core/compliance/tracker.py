@@ -27,13 +27,14 @@ class ComplianceTracker:
         Args:
             controls: List of compliance controls
         """
-        self.controls.clear()
-        
         for control in controls:
             standard = control.get('standard', 'Unknown')
-            self.controls[standard].append(control)
+            # Check for existing control to avoid exact duplicates
+            existing_ids = [c.get('control_id') for c in self.controls[standard]]
+            if control.get('control_id') not in existing_ids:
+                self.controls[standard].append(control)
         
-        logger.info(f"Registered {len(controls)} controls across {len(self.controls)} standards")
+        logger.info(f"Registered {len(controls)} new controls (Total: {sum(len(c) for c in self.controls.values())} across {len(self.controls)} standards)")
         self._recalculate_scores()
     
     def record_violation(

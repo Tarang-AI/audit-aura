@@ -88,9 +88,7 @@ class ComplianceExtractor:
             raise ValueError("OpenAI is enabled but API key is not configured")
         self.extraction_prompt = """
 You are a cybersecurity compliance control extraction engine.
-
-Extract MAXIMUM 5 compliance controls from the text.
-
+Extract all compliance controls found in the text.
 Return ONLY valid JSON.
 
 Rules:
@@ -122,13 +120,15 @@ Required schema:
   ]
 }}
 
-Field rules:
-
 - control_id:
-  Use explicit control ID if available.
-  Otherwise generate:
-  CUSTOM-001
-  CUSTOM-002
+  MUST extract the EXACT control ID from the document (e.g., CC1.1, C5-01, ISO-A.5.1).
+  DO NOT use generic "001" or similar if a real ID exists.
+  If no ID exists, generate a descriptive one: [STANDARD]-[ABBREVIATED-CATEGORY]-[NUMBER].
+
+- description:
+  Provide a COMPREHENSIVE and CLEAR description of the control requirement.
+  Include context from the document.
+  DO NOT use placeholders like "001".
 
 - condition:
   Must be machine-readable.
@@ -140,12 +140,14 @@ Field rules:
     event.field >= value
     event.field <= value
 
+- category:
+  Identify the specific compliance category (e.g., Access Control, Encryption, Network Security).
+
+- standard:
+  Identify the audit standard (e.g., SOC2, ISO27001, C5, GDPR).
+
 - severity:
-  Must be one of:
-    critical
-    high
-    medium
-    low
+  Must be one of: critical, high, medium, low.
 
 - control_type:
   Must be one of:
@@ -605,6 +607,13 @@ Text:
         Returns:
             List of extracted controls
         """
+        # Check for mock mode first (useful for development/demos)
+        from config import get_config
+        config = get_config()
+        if config.mock_mode:
+            logger.info("Mock mode enabled: returning sample controls")
+            return self._get_mock_controls()
+            
         try:
             # Try PyPDF2 first
             text = self._extract_text_pypdf2(content)
@@ -618,10 +627,19 @@ Text:
                 return []
             
             # Extract controls using AI
-            return self._extract_controls_with_ai(text)
+            try:
+                return self._extract_controls_with_ai(text)
+            except Exception as e:
+                logger.warning(f"AI extraction failed, attempting fallback regex extraction: {e}")
+                fallback_controls = self._extract_controls_fallback(text)
+                if fallback_controls:
+                    logger.info(f"Successfully extracted {len(fallback_controls)} controls via fallback")
+                    return fallback_controls
+                raise
             
         except Exception as e:
             logger.error(f"Error extracting from PDF: {e}")
+            # If everything fails, return empty list but ensure it was logged
             return []
     
     def extract_from_url(self, url: str) -> List[Dict[str, Any]]:
@@ -681,7 +699,7 @@ Text:
             logger.warning(f"pdfplumber extraction failed: {e}")
             return ""
     
-    def _extract_controls_with_ai(self, text: str, chunk_size: int = 2000) -> List[Dict[str, Any]]:
+    def _extract_controls_with_ai(self, text: str, chunk_size: int = 8000) -> List[Dict[str, Any]]:
         """
         Extract controls from text using AI
         
@@ -763,6 +781,98 @@ Text:
             raise RuntimeError(f"Failed to extract controls from PDF: {e}") from e
     
     
+    def _extract_controls_fallback(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Fallback extraction using regex patterns when AI fails.
+        Useful for structured compliance documents.
+        """
+        controls = []
+        
+        # Pattern for SOC2/ISO-style controls: ID followed by description and severity
+        # Example: SOC2-CC1.1 - description - high - category
+        pattern = r'(SOC2-[A-Z0-9\.]+|ISO-[0-9\.]+|CTRL-[0-9]+)[\s\:\-]+(.*?)(?=\n(?:SOC2|ISO|CTRL|$))'
+        matches = re.finditer(pattern, text, re.DOTALL | re.IGNORECASE)
+        
+        for i, match in enumerate(matches):
+            cid = match.group(1).strip()
+            content = match.group(2).strip()
+            
+            # Try to split content into description/severity/category if possible
+            lines = [l.strip() for l in content.split('\n') if l.strip()]
+            description = lines[0] if lines else "No description available"
+            
+            severity = "medium"
+            category = "General"
+            
+            for line in lines[1:]:
+                l_lower = line.lower()
+                if any(s in l_lower for s in ['critical', 'high', 'medium', 'low']):
+                    severity = l_lower
+                elif len(line) > 3:
+                    category = line
+            
+            controls.append({
+                "control_id": cid,
+                "description": description,
+                "condition": "exists(event.status)",  # Default condition
+                "severity": severity,
+                "remediation": f"Verify compliance for {cid}",
+                "category": category,
+                "standard": "SOC2" if "SOC2" in cid.upper() else "Compliance",
+                "control_type": "detective",
+                "evidence_required": "Log evidence",
+                "automatable": True
+            })
+        
+        # If no regex matches, try a simpler line-based split for very basic documents
+        if not controls and len(text.strip()) > 50:
+            lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 20]
+            for i, line in enumerate(lines[:10]):
+                controls.append({
+                    "control_id": f"EXTRACTED-{i+1:03d}",
+                    "description": line,
+                    "condition": "exists(event.status)",
+                    "severity": "medium",
+                    "remediation": "Review compliance requirement",
+                    "category": "General",
+                    "standard": "Custom",
+                    "control_type": "detective",
+                    "evidence_required": "Manual review",
+                    "automatable": False
+                })
+                
+        return controls
+
+
+    def _get_mock_controls(self) -> List[Dict[str, Any]]:
+        """Return sample controls for demo/mock mode"""
+        return [
+            {
+                "control_id": "SOC2-CC6.1",
+                "description": "Ensure logical access to systems is restricted to authorized users.",
+                "condition": "event.event_name == 'login' and event.status == 'success'",
+                "severity": "critical",
+                "remediation": "Review access logs and revoke unauthorized permissions.",
+                "category": "Logical Access",
+                "standard": "SOC2",
+                "control_type": "preventive",
+                "evidence_required": "Access control lists and IAM policies",
+                "automatable": True
+            },
+            {
+                "control_id": "SOC2-CC7.2",
+                "description": "Identify and evaluate vulnerabilities in the system periodically.",
+                "condition": "event.resource_type == 'vulnerability_scan' and event.vulnerabilities_found > 0",
+                "severity": "high",
+                "remediation": "Apply security patches and updates to affected systems.",
+                "category": "System Operations",
+                "standard": "SOC2",
+                "control_type": "detective",
+                "evidence_required": "Vulnerability scan reports",
+                "automatable": True
+            }
+        ]
+
     def _split_text(self, text: str, chunk_size: int) -> List[str]:
         """Split text into chunks"""
         if len(text) <= chunk_size:

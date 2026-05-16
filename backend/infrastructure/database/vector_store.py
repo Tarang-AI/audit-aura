@@ -94,6 +94,60 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error building vector store: {e}")
             return False
+            
+    def add_controls(self, controls: List[Dict[str, Any]]) -> bool:
+        """
+        Add new controls to existing vector store
+        
+        Args:
+            controls: List of new compliance controls
+            
+        Returns:
+            True if successful
+        """
+        try:
+            from langchain_core.documents import Document
+            
+            if not controls:
+                return True
+                
+            # If store is empty, just build it
+            if not self.store:
+                return self.build_from_controls(controls)
+                
+            # Create documents from new controls
+            documents = []
+            start_idx = max(self.controls_map.keys()) + 1 if self.controls_map else 0
+            
+            for i, control in enumerate(controls):
+                idx = start_idx + i
+                text = self._create_searchable_text(control)
+                
+                doc = Document(
+                    page_content=text,
+                    metadata={
+                        'control_id': control.get('control_id', ''),
+                        'standard': control.get('standard', ''),
+                        'category': control.get('category', ''),
+                        'severity': control.get('severity', ''),
+                        'index': idx
+                    }
+                )
+                documents.append(doc)
+                self.controls_map[idx] = control
+                
+            # Add to FAISS index
+            self.store.add_documents(documents)
+            
+            # Save updated store
+            self._save_store()
+            
+            logger.info(f"Added {len(controls)} new controls to vector store (Total: {len(self.controls_map)})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error adding to vector store: {e}")
+            return False
     
     def search_similar_controls(
         self,

@@ -27,7 +27,8 @@ fi
 
 # Load environment variables from .env
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    # Use a safer way to export .env variables
+    export $(grep -v '^#' .env | xargs)
 fi
 
 # Check for required environment variables
@@ -43,56 +44,72 @@ else
     echo "✅ OpenCode Zen (Anthropic) configured"
 fi
 
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "ℹ️  Note: OPENAI_API_KEY not set (optional)"
+# Check for Local vs Docker mode
+USE_DOCKER=false
+if [[ "$1" == "--docker" ]]; then
+    USE_DOCKER=true
+fi
+
+if [ "$USE_DOCKER" = true ]; then
+    echo "🐳 Mode: Docker Containers"
+    
+    # Check if Docker is running
+    if ! docker info > /dev/null 2>&1; then
+        echo "❌ Error: Docker is not running"
+        echo "   Please start Docker and try again"
+        exit 1
+    fi
+
+    # Stop any existing containers
+    echo "🛑 Stopping existing containers..."
+    docker-compose down 2>/dev/null || true
+
+    # Build and start services
+    echo "🔨 Building and starting services..."
+    docker-compose up --build -d
 else
-    echo "✅ OpenAI API key configured"
+    echo "💻 Mode: Local Development"
+    
+    # Handle port conflicts
+    echo "🧹 Cleaning up existing processes on ports 8000 and 3000..."
+    lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    
+    # Check for virtual environment
+    if [ -d ".venv" ]; then
+        PYTHON_PATH="./.venv/bin/python"
+        echo "✅ Using existing virtual environment (.venv)"
+    elif [ -d "backend/venv" ]; then
+        PYTHON_PATH="./backend/venv/bin/python"
+        echo "✅ Using existing backend virtual environment (backend/venv)"
+    else
+        echo "⚠️  No virtual environment found. Using system python..."
+        PYTHON_PATH="python3"
+    fi
+
+    echo "🚀 Starting AuditAura services locally..."
+    
+    # Start Backend
+    echo "📦 Starting Backend (Port 8000)..."
+    cd backend
+    ../$PYTHON_PATH main.py > ../backend.log 2>&1 &
+    BACKEND_PID=$!
+    cd ..
+    
+    # Start Frontend
+    echo "🎨 Starting Frontend (Port 3000)..."
+    cd frontend
+    npm run dev > ../frontend.log 2>&1 &
+    FRONTEND_PID=$!
+    cd ..
+    
+    # Trap exit signal to kill background processes
+    trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit" SIGINT SIGTERM
+    
+    echo ""
+    echo "⏳ Waiting for services to initialize..."
+    sleep 5
 fi
-
-# Check optional configurations
-if [ -z "$SMTP_HOST" ]; then
-    echo "ℹ️  Email notifications not configured (optional)"
-else
-    echo "✅ Email notifications configured"
-fi
-
-if [ -z "$SLACK_WEBHOOK_URL" ]; then
-    echo "ℹ️  Slack notifications not configured (optional)"
-else
-    echo "✅ Slack notifications configured"
-fi
-
-echo ""
-echo "🚀 Starting AuditAura services..."
-echo ""
-
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Error: Docker is not running"
-    echo "   Please start Docker and try again"
-    exit 1
-fi
-
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Error: docker-compose not found"
-    echo "   Please install docker-compose and try again"
-    exit 1
-fi
-
-# Stop any existing containers
-echo "🛑 Stopping existing containers..."
-docker-compose down 2>/dev/null || true
-
-# Build and start services
-echo "🔨 Building and starting services..."
-echo ""
-docker-compose up --build -d
-
-# Wait for services to be ready
-echo ""
-echo "⏳ Waiting for services to be ready..."
-sleep 5
 
 # Check service health
 echo ""
@@ -103,14 +120,14 @@ echo ""
 if curl -s http://localhost:8000/ > /dev/null 2>&1; then
     echo "✅ Backend API is running"
 else
-    echo "⚠️  Backend API not responding yet (may still be starting)"
+    echo "⚠️  Backend API not responding yet (check backend.log)"
 fi
 
 # Check frontend
 if curl -s http://localhost:3000/ > /dev/null 2>&1; then
     echo "✅ Frontend is running"
 else
-    echo "⚠️  Frontend not responding yet (may still be starting)"
+    echo "⚠️  Frontend not responding yet (check frontend.log)"
 fi
 
 echo ""
@@ -123,35 +140,23 @@ echo "   • Frontend:  http://localhost:3000"
 echo "   • Backend:   http://localhost:8000"
 echo "   • API Docs:  http://localhost:8000/docs"
 echo ""
-echo "💡 Semicolons Portal Tip:"
-echo "   When deployed, remember to append '?app=<your_app_id>' to the URL."
-echo "   The portal routes traffic based on this identifier."
-echo ""
-echo "👤 Login Flow:"
-echo "   1. Navigate to http://localhost:3000"
-echo "   2. Enter any email/password (demo mode)"
-echo "   3. Select your role"
-echo ""
-echo "📊 Features:"
-echo "   • Real-time compliance monitoring"
-echo "   • AI-powered violation detection"
-echo "   • Multi-channel alerts (UI, Email, Slack)"
-echo "   • Interactive dashboards with live charts"
-echo "   • PDF compliance document ingestion"
-echo ""
-echo "🔧 Useful Commands:"
-echo "   • View logs:     docker-compose logs -f"
-echo "   • Stop services: docker-compose down"
-echo "   • Restart:       docker-compose restart"
-echo ""
-echo "📚 Documentation:"
-echo "   • README.md for detailed usage"
-echo "   • IMPLEMENTATION_SUMMARY.md for technical details"
-echo ""
-echo "Press Ctrl+C to stop viewing logs, or run 'docker-compose logs -f' to follow"
-echo ""
-
-# Follow logs
-docker-compose logs -f
+if [ "$USE_DOCKER" = false ]; then
+    echo "📄 Logs:"
+    echo "   • Backend:  tail -f backend.log"
+    echo "   • Frontend: tail -f frontend.log"
+    echo ""
+    echo "💡 Keep this terminal open to keep the services running."
+    echo "   Press Ctrl+C to stop all services."
+    echo ""
+    
+    # Keep script alive and follow backend logs
+    tail -f backend.log
+else
+    echo "🔧 Useful Commands:"
+    echo "   • View logs:     docker-compose logs -f"
+    echo "   • Stop services: docker-compose down"
+    echo ""
+    docker-compose logs -f
+fi
 
 # Made with Bob

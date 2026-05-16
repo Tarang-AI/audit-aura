@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 from typing import List, Optional
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -45,11 +46,20 @@ from routers.agents import router as agents_router
 # Setup logging
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle events for the FastAPI application"""
+    await startup_event()
+    yield
+    await shutdown_event()
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AuditAura",
     description="Continuous Compliance Guardian - Real-time AI-powered audit readiness",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -104,7 +114,6 @@ class HealthResponse(BaseModel):
     services: dict
 
 
-@app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
     global config, extractor, vector_store, notification_service
@@ -144,9 +153,9 @@ async def startup_event():
         asyncio.create_task(start_heartbeat_task())
         logger.info("WebSocket heartbeat task started")
         
-        # Initialize vector store
+        # Initialize vector store (offload to thread as it loads the embedding model)
         vector_store = get_vector_store(config.vector_store_path)
-        vector_store.initialize(config.openai_api_key)
+        await asyncio.to_thread(vector_store.initialize, config.openai_api_key)
         logger.info("Vector store initialized")
         
         # Initialize notification service
@@ -195,7 +204,6 @@ async def startup_event():
         raise
 
 
-@app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     global monitoring_task, event_aggregator
@@ -253,14 +261,14 @@ async def upload_pdf(file: UploadFile = File(...)):
             f.write(content)
         logger.info(f"Saved PDF to {pdf_path}")
         
-        # Extract controls
-        controls = extractor.extract_from_pdf_bytes(content)
+        # Extract controls (offload to thread as it's CPU bound and blocking)
+        controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
         
         if not controls:
             raise HTTPException(status_code=400, detail="No controls extracted from PDF")
         
-        # Build vector store
-        vector_store.build_from_controls(controls)
+        # Add to vector store (offload to thread, additive)
+        await asyncio.to_thread(vector_store.add_controls, controls)
         
         # Register controls with tracker
         tracker.register_controls(controls)
@@ -303,14 +311,14 @@ async def upload_pdf_url(url: str):
     try:
         logger.info(f"Uploading from URL: {url}")
         
-        # Extract controls from URL
-        controls = extractor.extract_from_url(url)
+        # Extract controls from URL (offload to thread)
+        controls = await asyncio.to_thread(extractor.extract_from_url, url)
         
         if not controls:
             raise HTTPException(status_code=400, detail="No controls extracted from URL")
         
-        # Build vector store
-        vector_store.build_from_controls(controls)
+        # Add to vector store (offload to thread, additive)
+        await asyncio.to_thread(vector_store.add_controls, controls)
         
         # Register controls with tracker
         tracker.register_controls(controls)
@@ -369,8 +377,8 @@ async def ingest_all_pdfs():
                 with open(pdf_path, "rb") as f:
                     content = f.read()
                 
-                # Extract controls
-                controls = extractor.extract_from_pdf_bytes(content)
+                # Extract controls (offload to thread)
+                controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
                 
                 if controls:
                     all_controls.extend(controls)
@@ -384,8 +392,8 @@ async def ingest_all_pdfs():
                 continue
         
         if all_controls:
-            # Rebuild vector store with all controls
-            vector_store.build_from_controls(all_controls)
+            # Rebuild vector store with all controls (offload to thread)
+            await asyncio.to_thread(vector_store.build_from_controls, all_controls)
             
             # Re-register controls with tracker
             tracker.register_controls(all_controls)
@@ -428,8 +436,8 @@ async def ingest_single_pdf(filename: str):
         with open(pdf_path, "rb") as f:
             content = f.read()
         
-        # Extract controls
-        controls = extractor.extract_from_pdf_bytes(content)
+        # Extract controls (offload to thread)
+        controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
         
         if not controls:
             raise HTTPException(status_code=400, detail=f"No controls extracted from {filename}")
@@ -445,9 +453,9 @@ async def ingest_single_pdf(filename: str):
         for control in controls:
             control['source_file'] = filename
         
-        # Combine and rebuild
+        # Combine and rebuild (offload to thread)
         all_controls = filtered_controls + controls
-        vector_store.build_from_controls(all_controls)
+        await asyncio.to_thread(vector_store.build_from_controls, all_controls)
         
         # Re-register with tracker
         tracker.register_controls(all_controls)

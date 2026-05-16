@@ -81,7 +81,7 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onC
       case 'warning':
         return `${theme.status.medium.bg} ${theme.status.medium.border} ${theme.status.medium.text}`;
       case 'pr_update':
-        return `${theme.status.info.bg} border-purple-500/50 text-purple-400`;
+        return `${theme.status.info.bg} border-orange-500/50 text-orange-400`;
       default:
         return `${theme.bg.card} ${theme.border.primary} ${theme.text.primary}`;
     }
@@ -111,7 +111,7 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onC
       case 'warning':
         return 'text-yellow-600';
       case 'pr_update':
-        return 'text-purple-600';
+        return 'text-orange-600';
       default:
         return '${theme.text.secondary}';
     }

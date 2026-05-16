@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate as BaseNavigate } from 'react-router-dom';
 import { withAppId } from './utils/appParam';
 
@@ -30,7 +30,7 @@ import { RoleSelector } from './pages/RoleSelector';
 export type UserRole = 'admin' | 'devops' | 'auditor' | 'security' | null;
 
 interface User {
-  role: UserRole;
+  role: Exclude<UserRole, null>;
   name: string;
   email: string;
 }
@@ -73,7 +73,11 @@ function App() {
   }, [lastMessage]);
 
   const handleLogin = (role: UserRole, name: string, email: string) => {
-    const newUser = { role, name, email };
+    if (!role) {
+      return;
+    }
+
+    const newUser: User = { role, name, email };
     setUser(newUser);
     // Store user session (in production, use secure tokens)
     localStorage.setItem('audit-aura_user', JSON.stringify(newUser));

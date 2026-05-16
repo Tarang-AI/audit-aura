@@ -25,16 +25,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       {/* Animated background gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
       </div>
 
       <div className="max-w-md w-full relative z-10">
         {/* Logo and Title */}
         <div className="text-center mb-8 animate-fadeIn">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl mb-4 shadow-lg shadow-cyan-500/20">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-orange-600 rounded-2xl mb-4 shadow-lg shadow-cyan-500/20">
             <Shield className="h-8 w-8 text-white" />
           </div>
-          <h1 className={`text-3xl font-bold ${theme.text.primary} mb-2 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent`}>
+          <h1 className={`text-3xl font-bold ${theme.text.primary} mb-2 bg-gradient-to-r from-cyan-400 to-orange-400 bg-clip-text text-transparent`}>
             AuditAura
           </h1>
           <p className={theme.text.secondary}>Continuous Compliance Guardian</p>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { theme } from '@/config/theme';
 
 /**
  * Props for the ComplianceScoreGauge component
@@ -18,7 +17,7 @@ interface ComplianceScoreGaugeProps {
 }
 
 /**
- * Modern ComplianceScoreGauge component with dark theme and neon effects
+ * Professional ComplianceScoreGauge component with orange/coral accent theme
  */
 export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
   score,
@@ -30,12 +29,12 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
   // Clamp score between 0 and 100
   const clampedScore = Math.min(100, Math.max(0, score));
 
-  // Calculate gauge colors based on score with neon theme
+  // Calculate gauge colors based on score with professional accent colors
   const getGaugeColor = (): string => {
-    if (clampedScore >= 90) return '#10b981'; // green-500
-    if (clampedScore >= 70) return '#f59e0b'; // amber-500
-    if (clampedScore >= 50) return '#f97316'; // orange-500
-    return '#ef4444'; // red-500
+    if (clampedScore >= 90) return '#00ff88'; // status-success
+    if (clampedScore >= 70) return '#ffea00'; // status-warning
+    if (clampedScore >= 50) return '#FF6B35'; // accent-primary
+    return '#ff006e'; // status-error
   };
 
   // Get status text based on score
@@ -45,6 +44,14 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
     if (clampedScore >= 50) return 'Fair';
     if (clampedScore > 0) return 'Poor';
     return 'No Data';
+  };
+
+  // Get status badge class
+  const getStatusBadgeClass = (): string => {
+    if (clampedScore >= 90) return 'badge-success';
+    if (clampedScore >= 70) return 'badge-warning';
+    if (clampedScore >= 50) return 'badge-accent';
+    return 'badge-error';
   };
 
   // Calculate stroke dasharray for the gauge
@@ -58,9 +65,9 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`}>
-      {/* Outer glow effect */}
+      {/* Outer glow effect with accent color */}
       <div 
-        className="absolute -inset-4 rounded-full opacity-30 blur-2xl animate-pulse-slow"
+        className="absolute -inset-4 rounded-full opacity-20 blur-3xl animate-pulse-glow"
         style={{ background: `radial-gradient(circle, ${getGaugeColor()} 0%, transparent 70%)` }} 
       />
 
@@ -75,10 +82,10 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={getGaugeColor()} stopOpacity={1} />
-            <stop offset="100%" stopColor={getGaugeColor()} stopOpacity={0.6} />
+            <stop offset="100%" stopColor={getGaugeColor()} stopOpacity={0.7} />
           </linearGradient>
           <filter id={glowId}>
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
             <feMerge>
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
@@ -88,9 +95,8 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
 
         {/* Background track */}
         <circle
-          className="text-white/5"
           strokeWidth="16"
-          stroke="currentColor"
+          stroke="var(--border-medium)"
           fill="transparent"
           r={radius}
           cx={size / 2}
@@ -113,7 +119,7 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke="rgba(255,255,255,0.2)"
+              stroke="var(--border-strong)"
               strokeWidth={2}
             />
           );
@@ -139,29 +145,25 @@ export const ComplianceScoreGauge: React.FC<ComplianceScoreGaugeProps> = ({
         />
       </svg>
 
-      {/* Score text with modern styling */}
+      {/* Score text with professional styling */}
       <div className="absolute text-center">
         <div
-          className="text-4xl font-bold tracking-tight animate-pulse-slow"
-          style={{ color: getGaugeColor(), textShadow: `0 0 20px ${getGaugeColor()}40` }}
+          className="text-4xl font-bold tracking-tight animate-pulse-glow"
+          style={{ 
+            color: getGaugeColor(), 
+            textShadow: `0 0 20px ${getGaugeColor()}60`,
+            fontFamily: 'inherit'
+          }}
         >
           {showPercentage ? `${Math.round(clampedScore)}%` : Math.round(clampedScore)}
         </div>
-        <div className="text-sm font-medium text-dark-500 mt-1">
+        <div className="text-caption mt-1">
           {showPercentage ? 'Compliance' : 'Score'}
         </div>
 
-        {/* Status indicator with neon effect */}
+        {/* Status indicator with professional badge */}
         {showStatus && (
-          <div className={`text-xs font-semibold mt-2 px-3 py-1 rounded-full glass-card border transition-all
-            ${clampedScore >= 90 ? 'border-green-500/50 text-green-400' :
-              clampedScore >= 70 ? 'border-yellow-500/50 text-yellow-400' :
-              clampedScore >= 50 ? 'border-orange-500/50 text-orange-400' :
-              'border-red-500/50 text-red-400'}`}
-            style={{ 
-              boxShadow: `0 0 10px ${getGaugeColor()}30`
-            }}
-          >
+          <div className={`badge ${getStatusBadgeClass()} mt-3 text-xs`}>
             {getStatusText()}
           </div>
         )}

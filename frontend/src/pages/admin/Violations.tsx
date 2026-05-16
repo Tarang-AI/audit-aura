@@ -11,6 +11,8 @@ import {
   Shield,
   FileText,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { theme } from '@/config/theme';
 
@@ -66,6 +68,8 @@ export const AdminViolations: React.FC = () => {
   const [selectedStandard, setSelectedStandard] = useState<string>('all');
   const [showResolved, setShowResolved] = useState(false);
   const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchViolations = async () => {
     try {
@@ -104,66 +108,77 @@ export const AdminViolations: React.FC = () => {
     return matchesSearch && matchesStandard;
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredViolations.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedViolations = filteredViolations.slice(startIndex, endIndex);
+
   const standards = stats ? Object.keys(stats.by_standard) : [];
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedSeverity, selectedStandard, showResolved]);
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Violations Management</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <h1 className="text-3xl font-bold text-white">Violations Management</h1>
+          <p className="mt-1 text-gray-300">
             Monitor and manage compliance violations across all standards
           </p>
         </div>
         <button
           onClick={fetchViolations}
           disabled={loading}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-sm font-medium text-white hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 transition-all"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Themed Design */}
       {stats && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Violations</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-400">Total Violations</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.total}</p>
               </div>
-              <Shield className="h-8 w-8 text-slate-400" />
+              <Shield className="h-8 w-8 text-gray-400" />
             </div>
           </div>
 
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-sm">
+          <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-red-500/30">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-600">Unresolved</p>
-                <p className="mt-1 text-2xl font-bold text-red-900">{stats.unresolved}</p>
+                <p className="text-sm font-medium text-red-400">Unresolved</p>
+                <p className="mt-2 text-3xl font-bold text-red-400">{stats.unresolved}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-400" />
             </div>
           </div>
 
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm">
+          <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-green-500/30">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Resolved</p>
-                <p className="mt-1 text-2xl font-bold text-green-900">{stats.resolved}</p>
+                <p className="text-sm font-medium text-green-400">Resolved</p>
+                <p className="mt-2 text-3xl font-bold text-green-400">{stats.resolved}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-400" />
             </div>
           </div>
 
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 shadow-sm">
+          <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-orange-500/30">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600">Critical</p>
-                <p className="mt-1 text-2xl font-bold text-orange-900">
+                <p className="text-sm font-medium text-orange-400">Critical</p>
+                <p className="mt-2 text-3xl font-bold text-orange-400">
                   {stats.by_severity.critical || 0}
                 </p>
               </div>
@@ -173,48 +188,48 @@ export const AdminViolations: React.FC = () => {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      {/* Filters - Themed Search Bar */}
+      <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-white/5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Search</label>
-            <div className="relative mt-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search violations..."
-                className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg bg-gray-800/50 border border-gray-700/50 py-2.5 pl-10 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Severity</label>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Severity</label>
             <select
               value={selectedSeverity}
               onChange={(e) => setSelectedSeverity(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg bg-gray-800/50 border border-gray-700/50 py-2.5 px-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
             >
-              <option value="all">All Severities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="all" className="bg-gray-800">All Severities</option>
+              <option value="critical" className="bg-gray-800">Critical</option>
+              <option value="high" className="bg-gray-800">High</option>
+              <option value="medium" className="bg-gray-800">Medium</option>
+              <option value="low" className="bg-gray-800">Low</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Standard</label>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Standard</label>
             <select
               value={selectedStandard}
               onChange={(e) => setSelectedStandard(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg bg-gray-800/50 border border-gray-700/50 py-2.5 px-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
             >
-              <option value="all">All Standards</option>
+              <option value="all" className="bg-gray-800">All Standards</option>
               {standards.map((std) => (
-                <option key={std} value={std}>
+                <option key={std} value={std} className="bg-gray-800">
                   {std}
                 </option>
               ))}
@@ -222,30 +237,30 @@ export const AdminViolations: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Status</label>
-            <div className="mt-1 flex items-center">
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Status</label>
+            <div className="flex items-center mt-3">
               <input
                 type="checkbox"
                 checked={showResolved}
                 onChange={(e) => setShowResolved(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-gray-600 text-orange-500 focus:ring-orange-500 bg-gray-800"
               />
-              <span className="ml-2 text-sm text-slate-700">Show resolved</span>
+              <span className="ml-2 text-sm text-gray-300">Show resolved</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Violations Table */}
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      {/* Violations Table - Modern Design */}
+      <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-white/5">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Control ID
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Description
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
@@ -278,14 +293,14 @@ export const AdminViolations: React.FC = () => {
                     Loading violations...
                   </td>
                 </tr>
-              ) : filteredViolations.length === 0 ? (
+              ) : paginatedViolations.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-500">
                     No violations found
                   </td>
                 </tr>
               ) : (
-                filteredViolations.map((violation, index) => (
+                paginatedViolations.map((violation, index) => (
                   <tr key={index} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">
                       {violation.control_id}
@@ -343,6 +358,75 @@ export const AdminViolations: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && filteredViolations.length > 0 && (
+          <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-400">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredViolations.length)} of {filteredViolations.length} violations
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-gray-800/50 border border-gray-700/50 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    if (totalPages <= 7) return true;
+                    if (page === 1 || page === totalPages) return true;
+                    if (page >= currentPage - 1 && page <= currentPage + 1) return true;
+                    return false;
+                  })
+                  .map((page, index, array) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span className="px-2 text-gray-500">...</span>
+                      )}
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          currentPage === page
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                            : 'bg-gray-800/50 border border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-800/50 border border-gray-700/50 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Violation Detail Modal */}

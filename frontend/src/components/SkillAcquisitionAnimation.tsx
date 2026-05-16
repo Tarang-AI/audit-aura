@@ -59,7 +59,7 @@ const SkillAcquisitionAnimation: React.FC<SkillAcquisitionAnimationProps> = ({
       case 'detection':
         return 'from-blue-500 to-cyan-500';
       case 'analysis':
-        return 'from-purple-500 to-pink-500';
+        return 'from-orange-500 to-amber-500';
       case 'remediation':
         return 'from-green-500 to-emerald-500';
       default:

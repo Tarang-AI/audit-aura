@@ -57,21 +57,21 @@ interface SeverityBadgeProps {
   severity: 'critical' | 'high' | 'medium' | 'low';
 }
 
-const sectionCardClassName = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
-const subCardClassName = 'rounded-xl border border-slate-200 bg-slate-50 p-4';
+const sectionCardClassName = 'pro-card p-6';
+const subCardClassName = 'metric-card p-4';
 
 const toneClasses: Record<NonNullable<MetricCardProps['tone']>, string> = {
-  neutral: 'border-slate-200 bg-white text-slate-900',
-  critical: 'border-red-200 bg-red-50 text-red-900',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  neutral: 'pro-card',
+  critical: 'badge-error border-2',
+  warning: 'badge-warning border-2',
+  success: 'badge-success border-2',
 };
 
 const severityBadgeClasses: Record<SeverityBadgeProps['severity'], string> = {
-  critical: 'bg-red-100 text-red-800 border border-red-200',
-  high: 'bg-orange-100 text-orange-800 border border-orange-200',
-  medium: 'bg-amber-100 text-amber-800 border border-amber-200',
-  low: 'bg-blue-100 text-blue-800 border border-blue-200',
+  critical: 'badge-error',
+  high: 'badge-warning',
+  medium: 'badge-warning opacity-80',
+  low: 'badge-info',
 };
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
@@ -88,26 +88,24 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="flex w-full items-start justify-between gap-4 text-left"
+        className="flex w-full items-start justify-between gap-4 text-left transition-all duration-200 hover:opacity-80"
       >
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+            <h3 className="heading-sm">{title}</h3>
             {badge ? (
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                {badge}
-              </span>
+              <span className="badge-accent">{badge}</span>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="text-caption mt-2">{description}</p>
         </div>
 
-        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500">
-          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <div className="icon-container h-10 w-10 flex-shrink-0 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          <ChevronDown className="h-4 w-4" />
         </div>
       </button>
 
-      {isOpen ? <div className="mt-5">{children}</div> : null}
+      {isOpen ? <div className="mt-6 animate-fade-in">{children}</div> : null}
     </section>
   );
 };
@@ -118,21 +116,22 @@ const MetricCard: React.FC<MetricCardProps> = ({
   helper,
   tone = 'neutral',
 }) => (
-  <div className={`rounded-xl border p-4 shadow-sm ${toneClasses[tone]}`}>
-    <p className="text-sm font-medium text-slate-500">{label}</p>
-    <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-    {helper ? <p className="mt-1 text-xs text-slate-500">{helper}</p> : null}
+  <div className={`metric-card-accent ${tone !== 'neutral' ? toneClasses[tone] : ''}`}>
+    <p className="text-label">{label}</p>
+    <p className="heading-lg mt-3">{value}</p>
+    {helper ? <p className="text-caption mt-2">{helper}</p> : null}
   </div>
 );
 
 const SeverityBadge: React.FC<SeverityBadgeProps> = ({ severity }) => (
-  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${severityBadgeClasses[severity]}`}>
+  <span className={`badge capitalize ${severityBadgeClasses[severity]}`}>
     {severity}
   </span>
 );
 
 const AdminDashboard: React.FC = () => {
   const { complianceScore, violations, loading, fetchDashboard, dashboardData } = useComplianceStore();
+  const { toasts, removeToast, showSuccess, showWarning } = useToast();
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -282,9 +281,9 @@ const AdminDashboard: React.FC = () => {
     : 'low';
 
   const riskBannerClasses = {
-    high: 'border-red-200 bg-red-50 text-red-900',
-    medium: 'border-amber-200 bg-amber-50 text-amber-900',
-    low: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    high: 'pro-card-accent border-2',
+    medium: 'pro-card border-2',
+    low: 'pro-card border-2',
   };
 
   const riskLabel = riskStatus === 'high' ? 'HIGH RISK' : riskStatus === 'medium' ? 'MODERATE RISK' : 'LOW RISK';
@@ -361,17 +360,19 @@ const AdminDashboard: React.FC = () => {
   const activeProviderConnections = groupedSources[activeProvider] || [];
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
+      <header className="pro-card-accent p-8 animate-fade-in">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-                <Shield className="h-5 w-5" />
+            <div className="flex items-center gap-4 mb-3">
+              <div className="circular-frame h-12 w-12 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-accent-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">Executive Compliance Overview</p>
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                <p className="text-label">Executive Compliance Overview</p>
+                <h1 className="heading-lg mt-1">
                   Compliance Manager Dashboard
                 </h1>
               </div>
@@ -379,7 +380,7 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-            <label className="cursor-pointer">
+            <label className="cursor-pointer inline-block">
               <input
                 type="file"
                 accept=".pdf"
@@ -387,16 +388,16 @@ const AdminDashboard: React.FC = () => {
                 className="hidden"
                 disabled={uploading}
               />
-              <span className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">
+              <span className="btn-primary inline-flex items-center gap-2">
                 {uploading ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    Processing...
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="h-4 w-4" />
-                    Upload PDF
+                    <span>Upload PDF</span>
                   </>
                 )}
               </span>
@@ -406,7 +407,7 @@ const AdminDashboard: React.FC = () => {
               type="button"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -414,7 +415,7 @@ const AdminDashboard: React.FC = () => {
 
             <button
               type="button"
-              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="btn-secondary"
             >
               <FileText className="h-4 w-4" />
               Generate Report
@@ -424,29 +425,32 @@ const AdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowMoreActions((current) => !current)}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 shadow-sm transition hover:bg-slate-50"
+                className="btn-ghost px-3"
                 aria-label="More actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
               </button>
 
               {showMoreActions ? (
-                <div className="absolute right-0 z-10 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="absolute right-0 z-10 mt-2 w-48 pro-card p-2 animate-scale-in">
                   <button
                     type="button"
-                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-dark-elevated"
+                    style={{ color: 'var(--text-primary)' }}
                   >
                     Add Standard
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-dark-elevated"
+                    style={{ color: 'var(--text-primary)' }}
                   >
                     Add Connection
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-dark-elevated"
+                    style={{ color: 'var(--text-primary)' }}
                   >
                     Export Data
                   </button>
@@ -457,17 +461,17 @@ const AdminDashboard: React.FC = () => {
         </div>
       </header>
 
-      <section className={`rounded-2xl border p-5 shadow-sm sm:p-6 ${riskBannerClasses[riskStatus]}`}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <section className={`${riskBannerClasses[riskStatus]} p-6 animate-slide-up`}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Overall Risk Status</p>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <h2 className="text-2xl font-semibold tracking-tight">{riskLabel}</h2>
-              <span className="text-sm font-medium opacity-90">{riskMessage}</span>
+            <p className="text-label mb-3">Overall Risk Status</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <h2 className="heading-md text-gradient">{riskLabel}</h2>
+              <span className="text-body">{riskMessage}</span>
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-xl border border-current/10 bg-white/60 px-4 py-3 text-sm font-medium">
+          <div className="badge-warning">
             <AlertTriangle className="h-4 w-4" />
             {criticalDrifts} critical drifts · {totalViolations} active violations
           </div>
@@ -487,19 +491,19 @@ const AdminDashboard: React.FC = () => {
       </section>
 
       <section className={sectionCardClassName}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Priority Actions</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="heading-md">Priority Actions</h2>
+            <p className="text-caption mt-2">
               Immediate actions surfaced from current compliance posture and drift activity.
             </p>
           </div>
-          <div className="text-sm text-slate-500">
+          <div className="badge-accent">
             {personaInsights.priority_actions?.length || 0} active recommendations
           </div>
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="space-y-3">
           {personaInsights.priority_actions?.length > 0 ? (
             personaInsights.priority_actions.map((action: string, index: number) => {
               const actionTone =
@@ -508,16 +512,16 @@ const AdminDashboard: React.FC = () => {
               return (
                 <div
                   key={`${action}-${index}`}
-                  className={`rounded-xl border p-4 shadow-sm ${toneClasses[actionTone as keyof typeof toneClasses]}`}
+                  className={`metric-card-accent ${actionTone !== 'neutral' ? toneClasses[actionTone as keyof typeof toneClasses] : ''}`}
                 >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="icon-container-accent h-10 w-10 flex items-center justify-center text-sm font-bold">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">{action}</p>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{action}</p>
+                        <p className="text-caption mt-2">
                           Prioritized from current admin insights and unresolved operational risk.
                         </p>
                       </div>
@@ -526,13 +530,13 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="btn-ghost text-xs"
                       >
                         View Details
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                        className="btn-primary text-xs"
                       >
                         Take Action
                       </button>
@@ -542,7 +546,7 @@ const AdminDashboard: React.FC = () => {
               );
             })
           ) : (
-            <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+            <div className="badge-success p-6 text-sm">
               No priority actions at this time. Current monitoring data does not indicate urgent executive follow-up.
             </div>
           )}
@@ -579,14 +583,14 @@ const AdminDashboard: React.FC = () => {
       </section>
 
       <section className={sectionCardClassName}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Critical Configuration Drifts</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="heading-md">Critical Configuration Drifts</h2>
+            <p className="text-caption mt-2">
               Unresolved critical and high-severity configuration drifts, newest first.
             </p>
           </div>
-          <div className="text-sm text-slate-500">
+          <div className="badge-error">
             {criticalConfigurationDrifts.length} unresolved critical/high items
           </div>
         </div>
@@ -596,31 +600,31 @@ const AdminDashboard: React.FC = () => {
             criticalConfigurationDrifts.map((drift: any) => (
               <div
                 key={drift.id}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <SeverityBadge severity={drift.severity} />
-                      <h3 className="font-semibold text-slate-900">{drift.resource_name}</h3>
-                      <span className="text-sm text-slate-500">{drift.resource_type}</span>
+                      <h3 className="font-semibold text-slate-100">{drift.resource_name}</h3>
+                      <span className="text-sm text-slate-400">{drift.resource_type}</span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{drift.drift_details}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">{drift.drift_details}</p>
 
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected By</p>
-                        <p className="mt-1 text-sm font-medium text-slate-900">{drift.detected_by}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{drift.detected_by}</p>
                       </div>
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</p>
-                        <p className="mt-1 text-sm font-medium capitalize text-slate-900">
+                        <p className="mt-1 text-sm font-medium capitalize text-slate-100">
                           {drift.remediation_status.replace('_', ' ')}
                         </p>
                       </div>
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected</p>
-                        <p className="mt-1 text-sm font-medium text-slate-900">
+                        <p className="mt-1 text-sm font-medium text-slate-100">
                           {new Date(drift.timestamp).toLocaleString([], {
                             month: 'short',
                             day: 'numeric',
@@ -648,13 +652,13 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                      className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/[0.05]"
                     >
                       View Details
                     </button>
                     <button
                       type="button"
-                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                      className="rounded-lg border border-white/10 bg-white px-3 py-2 text-xs font-medium text-slate-900 transition-colors hover:bg-slate-100"
                     >
                       Take Action
                     </button>
@@ -663,7 +667,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+            <div className="rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-200">
               No unresolved critical or high-severity configuration drifts detected.
             </div>
           )}
@@ -674,28 +678,28 @@ const AdminDashboard: React.FC = () => {
         <div className={sectionCardClassName}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Compliance Trend</h2>
-              <p className="mt-1 text-sm text-slate-500">24-hour compliance score movement.</p>
+              <h2 className="text-xl font-semibold text-slate-100">Compliance Trend</h2>
+              <p className="mt-1 text-sm text-slate-400">24-hour compliance score movement.</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-500">Current Score</p>
-              <p className="text-2xl font-semibold text-slate-900">{compliancePercentage}%</p>
+              <p className="text-sm text-slate-400">Current Score</p>
+              <p className="text-2xl font-semibold text-slate-100">{compliancePercentage}%</p>
             </div>
           </div>
 
           <div className="mt-5 h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
                 <XAxis
                   dataKey="time"
-                  stroke="#64748b"
+                  stroke="#94a3b8"
                   tick={{ fontSize: 12 }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  stroke="#64748b"
+                  stroke="#94a3b8"
                   domain={[0, 100]}
                   tick={{ fontSize: 12 }}
                   tickLine={false}
@@ -703,43 +707,43 @@ const AdminDashboard: React.FC = () => {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
+                    backgroundColor: '#111827',
+                    border: '1px solid rgba(148, 163, 184, 0.16)',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.18)',
                   }}
-                  labelStyle={{ color: '#0f172a' }}
-                  itemStyle={{ color: '#0f172a' }}
+                  labelStyle={{ color: '#e5e7eb' }}
+                  itemStyle={{ color: '#e5e7eb' }}
                 />
-                <ReferenceLine y={90} stroke="#16a34a" strokeDasharray="4 4" />
-                <ReferenceLine y={70} stroke="#d97706" strokeDasharray="4 4" />
+                <ReferenceLine y={90} stroke="#22c55e" strokeDasharray="4 4" />
+                <ReferenceLine y={70} stroke="#f59e0b" strokeDasharray="4 4" />
                 <Line
                   type="monotone"
                   dataKey="score"
-                  stroke="#0f172a"
+                  stroke="#94a3b8"
                   strokeWidth={3}
-                  dot={{ fill: '#0f172a', stroke: '#ffffff', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#0f172a', stroke: '#ffffff', strokeWidth: 2 }}
+                  dot={{ fill: '#94a3b8', stroke: '#0f172a', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#cbd5e1', stroke: '#0f172a', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-3">
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">24h Change</p>
-              <p className={`mt-1 text-sm font-semibold ${compliancePercentage - trendData[0].score >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+              <p className={`mt-1 text-sm font-semibold ${compliancePercentage - trendData[0].score >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
                 {compliancePercentage - trendData[0].score >= 0 ? '+' : ''}
                 {Math.abs(compliancePercentage - trendData[0].score)}%
               </p>
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Threshold</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">70% operational baseline</p>
+              <p className="mt-1 text-sm font-semibold text-slate-100">70% operational baseline</p>
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Updated</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
+              <p className="mt-1 text-sm font-semibold text-slate-100">
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -749,10 +753,10 @@ const AdminDashboard: React.FC = () => {
         <div className={sectionCardClassName}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Violations by Severity</h2>
-              <p className="mt-1 text-sm text-slate-500">Current open violations by severity tier.</p>
+              <h2 className="text-xl font-semibold text-slate-100">Violations by Severity</h2>
+              <p className="mt-1 text-sm text-slate-400">Current open violations by severity tier.</p>
             </div>
-            <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-medium text-slate-300">
               {totalViolations} total
             </div>
           </div>
@@ -775,20 +779,20 @@ const AdminDashboard: React.FC = () => {
                       <Cell
                         key={`severity-${index}`}
                         fill={entry.color}
-                        stroke="#ffffff"
+                        stroke="#0f172a"
                         strokeWidth={2}
                       />
                     ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
+                      backgroundColor: '#111827',
+                      border: '1px solid rgba(148, 163, 184, 0.16)',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 24px rgba(15, 23, 42, 0.18)',
                     }}
-                    labelStyle={{ color: '#0f172a' }}
-                    itemStyle={{ color: '#0f172a' }}
+                    labelStyle={{ color: '#e5e7eb' }}
+                    itemStyle={{ color: '#e5e7eb' }}
                     formatter={(value, name) => [
                       `${value} violations (${Math.round((Number(value) / totalViolations) * 100)}%)`,
                       name,
@@ -797,22 +801,22 @@ const AdminDashboard: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 text-center">
-                <CheckCircle className="h-10 w-10 text-emerald-600" />
-                <p className="mt-3 text-sm font-medium text-emerald-800">No violations detected</p>
-                <p className="mt-1 text-sm text-emerald-700">Current standards are operating without open findings.</p>
+              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/10 px-4 text-center">
+                <CheckCircle className="h-10 w-10 text-emerald-300" />
+                <p className="mt-3 text-sm font-medium text-emerald-200">No violations detected</p>
+                <p className="mt-1 text-sm text-emerald-300">Current standards are operating without open findings.</p>
               </div>
             )}
           </div>
 
-          <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
+          <div className="mt-5 space-y-2 border-t border-white/10 pt-4">
             {severityData.map((item) => (
               <div key={item.name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-slate-400">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                   {item.name}
                 </div>
-                <span className="font-medium text-slate-900">{item.value}</span>
+                <span className="font-medium text-slate-100">{item.value}</span>
               </div>
             ))}
           </div>
@@ -822,30 +826,30 @@ const AdminDashboard: React.FC = () => {
       <section className={sectionCardClassName}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Standards Overview</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="text-xl font-semibold text-slate-100">Standards Overview</h2>
+            <p className="mt-1 text-sm text-slate-400">
               Framework-level compliance summary with score and violation count.
             </p>
           </div>
-          <div className="text-sm text-slate-500">{standardsData.length} standards tracked</div>
+          <div className="text-sm text-slate-400">{standardsData.length} standards tracked</div>
         </div>
 
         {standardsData.length > 0 ? (
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {standardsData.map((standard) => (
-              <div key={standard.name} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={standard.name} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-semibold text-slate-900">{standard.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500">Compliance framework</p>
+                    <h3 className="font-semibold text-slate-100">{standard.name}</h3>
+                    <p className="mt-1 text-sm text-slate-400">Compliance framework</p>
                   </div>
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       standard.score >= 90
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-emerald-500/15 text-emerald-200'
                         : standard.score >= 70
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-amber-500/15 text-amber-200'
+                          : 'bg-red-500/15 text-red-200'
                     }`}
                   >
                     {standard.score}%
@@ -855,21 +859,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="mt-4 flex items-end justify-between">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Violations</p>
-                    <p className="mt-1 text-2xl font-semibold text-slate-900">{standard.violations}</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-100">{standard.violations}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Controls</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-700">{standard.controls}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-300">{standard.controls}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-            <Shield className="mx-auto h-10 w-10 text-slate-400" />
-            <p className="mt-3 text-sm font-medium text-slate-700">No compliance standards configured</p>
-            <p className="mt-1 text-sm text-slate-500">
+          <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-center">
+            <Shield className="mx-auto h-10 w-10 text-slate-500" />
+            <p className="mt-3 text-sm font-medium text-slate-200">No compliance standards configured</p>
+            <p className="mt-1 text-sm text-slate-400">
               Upload a compliance PDF to populate standards and framework tracking.
             </p>
           </div>
@@ -889,10 +893,10 @@ const AdminDashboard: React.FC = () => {
                   key={provider}
                   type="button"
                   onClick={() => setActiveProvider(provider)}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                     activeProvider === provider
-                      ? 'bg-slate-900 text-white'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      ? 'border border-white/10 bg-white text-slate-900'
+                      : 'border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.05]'
                   }`}
                 >
                   {provider} ({groupedSources[provider].length})
@@ -928,24 +932,24 @@ const AdminDashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {activeProviderConnections.map((connection: any) => (
-                <div key={connection.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={connection.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <Cloud className="h-4 w-4 text-slate-500" />
-                        <h4 className="font-semibold text-slate-900">{connection.region}</h4>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-600">
+                        <h4 className="font-semibold text-slate-100">{connection.region}</h4>
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-xs font-medium capitalize text-slate-300">
                           {connection.status}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm text-slate-500">{connection.description}</p>
+                      <p className="mt-2 text-sm text-slate-400">{connection.description}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
                       connection.health === 'healthy'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
                         : connection.health === 'warning'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'border border-amber-500/20 bg-amber-500/10 text-amber-200'
+                          : 'border border-rose-500/20 bg-rose-500/10 text-rose-200'
                     }`}>
                       {connection.health}
                     </span>
@@ -954,15 +958,15 @@ const AdminDashboard: React.FC = () => {
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Events</p>
-                      <p className="mt-1 font-semibold text-slate-900">{(connection.events_monitored || 0).toLocaleString()}</p>
+                      <p className="mt-1 font-semibold text-slate-100">{(connection.events_monitored || 0).toLocaleString()}</p>
                     </div>
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Changes</p>
-                      <p className="mt-1 font-semibold text-slate-900">{connection.config_changes_detected}</p>
+                      <p className="mt-1 font-semibold text-slate-100">{connection.config_changes_detected}</p>
                     </div>
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Last Event</p>
-                      <p className="mt-1 font-semibold text-slate-900">
+                      <p className="mt-1 font-semibold text-slate-100">
                         {new Date(connection.last_event).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -971,7 +975,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Provider</p>
-                      <p className="mt-1 font-semibold text-slate-900">{connection.provider}</p>
+                      <p className="mt-1 font-semibold text-slate-100">{connection.provider}</p>
                     </div>
                   </div>
                 </div>
@@ -979,10 +983,10 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-            <Server className="mx-auto h-10 w-10 text-slate-400" />
-            <p className="mt-3 text-sm font-medium text-slate-700">No cloud event sources configured</p>
-            <p className="mt-1 text-sm text-slate-500">
+          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-center">
+            <Server className="mx-auto h-10 w-10 text-slate-500" />
+            <p className="mt-3 text-sm font-medium text-slate-200">No cloud event sources configured</p>
+            <p className="mt-1 text-sm text-slate-400">
               Connect a cloud provider to monitor configuration changes in real time.
             </p>
           </div>
@@ -997,20 +1001,20 @@ const AdminDashboard: React.FC = () => {
         {violations.length > 0 ? (
           <div className="space-y-3">
             {violations.slice(0, 5).map((violation: any, index: number) => (
-              <div key={`${violation.control_id}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={`${violation.control_id}-${index}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <SeverityBadge severity={violation.severity} />
-                      <h4 className="font-semibold text-slate-900">{violation.control_id}</h4>
-                      <span className="text-sm text-slate-500">{violation.standard}</span>
+                      <h4 className="font-semibold text-slate-100">{violation.control_id}</h4>
+                      <span className="text-sm text-slate-400">{violation.standard}</span>
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">{violation.description}</p>
+                    <p className="mt-2 text-sm text-slate-300">{violation.description}</p>
 
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                        <p className="mt-1 text-sm font-semibold text-slate-100">
                           {new Date(violation.timestamp).toLocaleString([], {
                             month: 'short',
                             day: 'numeric',
@@ -1021,11 +1025,11 @@ const AdminDashboard: React.FC = () => {
                       </div>
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">{violation.category || 'Compliance'}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-100">{violation.category || 'Compliance'}</p>
                       </div>
                       <div className={subCardClassName}>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                        <p className="mt-1 text-sm font-semibold text-slate-100">
                           {violation.resolved ? 'Resolved' : 'Open'}
                         </p>
                       </div>
@@ -1035,13 +1039,13 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                      className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/[0.05]"
                     >
                       View Details
                     </button>
                     <button
                       type="button"
-                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                      className="rounded-lg border border-white/10 bg-white px-3 py-2 text-xs font-medium text-slate-900 transition-colors hover:bg-slate-100"
                     >
                       Take Action
                     </button>
@@ -1051,7 +1055,7 @@ const AdminDashboard: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+          <div className="rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-200">
             No recent violations detected across monitored standards.
           </div>
         )}
@@ -1076,7 +1080,7 @@ const AdminDashboard: React.FC = () => {
         badge={`${Object.keys(driftData?.drift_by_source || {}).length} sources`}
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm">
             <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
               <GitBranch className="h-4 w-4" />
               Drift by Source
@@ -1084,44 +1088,45 @@ const AdminDashboard: React.FC = () => {
             <div className="mt-4 space-y-3">
               {Object.keys(driftData?.drift_by_source || {}).length > 0 ? (
                 Object.entries(driftData.drift_by_source).map(([source, count]: [string, any]) => (
-                  <div key={source} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="text-sm font-medium text-slate-700">{source}</span>
-                    <span className="text-sm font-semibold text-slate-900">{count}</span>
+                  <div key={source} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <span className="text-sm font-medium text-slate-300">{source}</span>
+                    <span className="text-sm font-semibold text-slate-100">{count}</span>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-500">No drift source breakdown available.</p>
+                <p className="text-sm text-slate-400">No drift source breakdown available.</p>
               )}
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm">
             <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
               <Clock className="h-4 w-4" />
               Monitoring Snapshot
             </h4>
             <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="text-sm font-medium text-slate-700">Connections</span>
-                <span className="text-sm font-semibold text-slate-900">{cloudConnections.length}</span>
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <span className="text-sm font-medium text-slate-300">Connections</span>
+                <span className="text-sm font-semibold text-slate-100">{cloudConnections.length}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="text-sm font-medium text-slate-700">Total Drifts</span>
-                <span className="text-sm font-semibold text-slate-900">{driftData?.total_drifts || 0}</span>
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <span className="text-sm font-medium text-slate-300">Total Drifts</span>
+                <span className="text-sm font-semibold text-slate-100">{driftData?.total_drifts || 0}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="text-sm font-medium text-slate-700">Medium Drifts</span>
-                <span className="text-sm font-semibold text-slate-900">{driftData?.medium_drifts || 0}</span>
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <span className="text-sm font-medium text-slate-300">Medium Drifts</span>
+                <span className="text-sm font-semibold text-slate-100">{driftData?.medium_drifts || 0}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="text-sm font-medium text-slate-700">Active Provider</span>
-                <span className="text-sm font-semibold text-slate-900">{activeProvider || 'N/A'}</span>
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <span className="text-sm font-medium text-slate-300">Active Provider</span>
+                <span className="text-sm font-semibold text-slate-100">{activeProvider || 'N/A'}</span>
               </div>
             </div>
           </div>
         </div>
       </CollapsibleSection>
-    </div>
+      </div>
+    </>
   );
 };
 

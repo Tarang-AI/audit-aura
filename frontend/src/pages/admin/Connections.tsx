@@ -736,7 +736,7 @@ export const AdminConnections: React.FC = () => {
       ibm_cloud: 'bg-blue-500/20 text-blue-400',
       azure: 'bg-cyan-500/20 text-cyan-400',
       gcp: 'bg-green-500/20 text-green-400',
-      generic: 'bg-purple-500/20 text-purple-400'
+      generic: 'bg-orange-500/20 text-orange-400'
     };
     return colors[provider] || 'bg-gray-500/20 text-gray-400';
   };

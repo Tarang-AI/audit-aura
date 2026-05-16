@@ -194,7 +194,7 @@ export const SecurityIncidents: React.FC = () => {
                         </span>
                       )}
                       {violationPRs[violation.id]?.length > 0 && (
-                        <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
                           <GitPullRequest className="h-3 w-3" />
                           {violationPRs[violation.id].length} PR{violationPRs[violation.id].length > 1 ? 's' : ''}
                         </span>
@@ -300,14 +300,14 @@ export const SecurityIncidents: React.FC = () => {
                 </div>
 
                 {violationPRs[selectedViolation.id]?.length > 0 && (
-                  <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
-                    <label className="text-xs font-medium text-purple-900 uppercase flex items-center gap-2 mb-3">
+                  <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                    <label className="text-xs font-medium text-orange-900 uppercase flex items-center gap-2 mb-3">
                       <GitPullRequest className="h-4 w-4" />
                       Linked Pull Requests ({violationPRs[selectedViolation.id].length})
                     </label>
                     <div className="space-y-2">
                       {violationPRs[selectedViolation.id].map((pr: any) => (
-                        <div key={pr.id} className={`${theme.bg.card} p-3 rounded border border-purple-200`}>
+                        <div key={pr.id} className={`${theme.bg.card} p-3 rounded border border-orange-200`}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -316,7 +316,7 @@ export const SecurityIncidents: React.FC = () => {
                                 </span>
                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                   pr.status === 'merged'
-                                    ? 'bg-purple-100 text-purple-700'
+                                    ? 'bg-orange-100 text-orange-700'
                                     : pr.status === 'open'
                                     ? 'bg-green-100 text-green-700'
                                     : `${theme.bg.tertiary} ${theme.text.secondary}`
@@ -330,10 +330,10 @@ export const SecurityIncidents: React.FC = () => {
                               href={pr.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex-shrink-0 p-1 hover:bg-purple-100 rounded"
+                              className="flex-shrink-0 p-1 hover:bg-orange-100 rounded"
                               title="View on GitHub"
                             >
-                              <ExternalLink className="h-4 w-4 text-purple-600" />
+                              <ExternalLink className="h-4 w-4 text-orange-600" />
                             </a>
                           </div>
                         </div>

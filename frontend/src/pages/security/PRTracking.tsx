@@ -85,7 +85,7 @@ export const PRTracking: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'merged':
-        return <GitMerge className="h-5 w-5 text-purple-600" />;
+        return <GitMerge className="h-5 w-5 text-orange-600" />;
       case 'open':
         return <GitBranch className="h-5 w-5 text-green-600" />;
       case 'closed':
@@ -97,7 +97,7 @@ export const PRTracking: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const classes = {
-      merged: 'bg-purple-100 text-purple-700 border-purple-200',
+      merged: 'bg-orange-100 text-orange-700 border-orange-200',
       open: 'bg-green-100 text-green-700 border-green-200',
       closed: 'bg-red-100 text-red-700 border-red-200'
     };
@@ -153,13 +153,13 @@ export const PRTracking: React.FC = () => {
             </div>
           </div>
 
-          <div className={`${theme.bg.card} rounded-lg shadow-sm p-4 border-l-4 border-purple-500`}>
+          <div className={`${theme.bg.card} rounded-lg shadow-sm p-4 border-l-4 border-orange-500`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-sm ${theme.text.secondary}`}>Merged</p>
                 <p className={`text-2xl font-bold ${theme.text.primary}`}>{stats.merged}</p>
               </div>
-              <GitMerge className="h-8 w-8 text-purple-500" />
+              <GitMerge className="h-8 w-8 text-orange-500" />
             </div>
           </div>
 

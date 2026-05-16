@@ -142,7 +142,7 @@ export const UserViolations: React.FC = () => {
             <Zap className="h-8 w-8 text-orange-500" />
           </div>
         </div>
-        <div className={`${theme.bg.card} rounded-lg shadow-sm p-4 border-l-4 border-purple-500`}>
+        <div className={`${theme.bg.card} rounded-lg shadow-sm p-4 border-l-4 border-orange-500`}>
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm ${theme.text.secondary}`}>With PRs</p>
@@ -150,7 +150,7 @@ export const UserViolations: React.FC = () => {
                 {Object.keys(violationPRs).length}
               </p>
             </div>
-            <GitPullRequest className="h-8 w-8 text-purple-500" />
+            <GitPullRequest className="h-8 w-8 text-orange-500" />
           </div>
         </div>
         <div className={`${theme.bg.card} rounded-lg shadow-sm p-4 border-l-4 border-green-500`}>
@@ -287,7 +287,7 @@ export const UserViolations: React.FC = () => {
                         </span>
                       )}
                       {prs.length > 0 && (
-                        <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
                           <GitPullRequest className="h-3 w-3" />
                           {prs.length} PR{prs.length > 1 ? 's' : ''}
                         </span>
@@ -327,11 +327,11 @@ export const UserViolations: React.FC = () => {
                     {prs.length > 0 && (
                       <div className="mb-3 space-y-2">
                         {prs.map((pr: any) => (
-                          <div key={pr.id} className="flex items-center gap-2 p-2 bg-purple-50 rounded border border-purple-200">
-                            <GitPullRequest className="h-4 w-4 text-purple-600" />
+                          <div key={pr.id} className="flex items-center gap-2 p-2 bg-orange-50 rounded border border-orange-200">
+                            <GitPullRequest className="h-4 w-4 text-orange-600" />
                             <span className={`text-sm font-medium ${theme.text.primary}`}>#{pr.pr_number}</span>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              pr.status === 'merged' ? 'bg-purple-100 text-purple-700' :
+                              pr.status === 'merged' ? 'bg-orange-100 text-orange-700' :
                               pr.status === 'open' ? 'bg-green-100 text-green-700' :
                               `${theme.bg.tertiary} ${theme.text.secondary}`
                             }`}>
@@ -342,9 +342,9 @@ export const UserViolations: React.FC = () => {
                               href={pr.pr_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1 hover:bg-purple-100 rounded"
+                              className="p-1 hover:bg-orange-100 rounded"
                             >
-                              <ExternalLink className="h-4 w-4 text-purple-600" />
+                              <ExternalLink className="h-4 w-4 text-orange-600" />
                             </a>
                           </div>
                         ))}
@@ -360,12 +360,12 @@ export const UserViolations: React.FC = () => {
 
                     {/* Quick Fix Suggestion */}
                     {violation.severity === 'critical' && (
-                      <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded mb-3">
+                      <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded mb-3">
                         <div className="flex items-start gap-2">
-                          <Code className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <Code className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-sm font-medium text-purple-900 mb-1">Quick Fix Available</p>
-                            <p className="text-xs text-purple-800">
+                            <p className="text-sm font-medium text-orange-900 mb-1">Quick Fix Available</p>
+                            <p className="text-xs text-orange-800">
                               Automated fix can be applied via PR. Est. time: {Math.floor(Math.random() * 3) + 1}h
                             </p>
                           </div>

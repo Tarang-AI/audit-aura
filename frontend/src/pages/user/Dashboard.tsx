@@ -93,12 +93,12 @@ export const UserDashboard: React.FC = () => {
           <p className="text-dark-500 text-sm">Active Violations</p>
         </div>
 
-        <div className="metric-card bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20 hover-lift group">
+        <div className="metric-card bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/20 hover-lift group">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl glass-strong">
-              <GitPullRequest className="h-6 w-6 text-purple-400" />
+              <GitPullRequest className="h-6 w-6 text-orange-400" />
             </div>
-            <Target className="h-5 w-5 text-purple-400 group-hover:rotate-180 transition-transform duration-500" />
+            <Target className="h-5 w-5 text-orange-400 group-hover:rotate-180 transition-transform duration-500" />
           </div>
           <h3 className="text-3xl font-bold text-dark-900 mb-1">{openPRs}</h3>
           <p className="text-dark-500 text-sm">Open PRs</p>

@@ -5,6 +5,7 @@ Main FastAPI application
 import asyncio
 import json
 import logging
+import re
 from typing import List, Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, BackgroundTasks
@@ -80,6 +81,93 @@ app.include_router(agents_router)
 PDF_STORAGE_DIR = Path("./data/pdfs")
 PDF_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Setup Caching and Export directories
+CACHE_DIR = Path("./data/cache")
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+CACHE_FILE = CACHE_DIR / "extraction_cache.json"
+EXTRACTED_JSON_DIR = Path("./data/extracted_controls")
+EXTRACTED_JSON_DIR.mkdir(parents=True, exist_ok=True)
+
+def get_checksum(content: bytes) -> str:
+    import hashlib
+    return hashlib.sha256(content).hexdigest()
+
+def get_cached_controls(checksum: str) -> Optional[List[dict]]:
+    if not CACHE_FILE.exists():
+        return None
+    try:
+        with open(CACHE_FILE, "r") as f:
+            cache = json.load(f)
+            return cache.get(checksum)
+    except:
+        return None
+
+def save_to_cache(checksum: str, controls: List[dict]):
+    cache = {}
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r") as f:
+                cache = json.load(f)
+        except:
+            pass
+    cache[checksum] = controls
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
+
+def save_controls_to_json(filename: str, controls: List[dict], checksum: str = None):
+    import re
+    # Clean filename for safe storage
+    safe_name = re.sub(r'[^\w\-_\.]', '_', filename)
+    json_path = EXTRACTED_JSON_DIR / f"{safe_name}.json"
+    
+    # Add metadata to each control
+    enriched_controls = []
+    for control in controls:
+        enriched = control.copy()
+        enriched['file_name'] = filename
+        enriched['file_checksum'] = checksum
+        enriched_controls.append(enriched)
+    
+    with open(json_path, "w") as f:
+        json.dump(enriched_controls, f, indent=2)
+    logger.info(f"Exported {len(enriched_controls)} enriched controls to {json_path}")
+
+def sync_existing_pdfs_to_cache():
+    """Scan PDF directory and pre-populate cache from existing JSON exports if checksums match"""
+    if not PDF_STORAGE_DIR.exists():
+        return
+        
+    for pdf_path in PDF_STORAGE_DIR.glob("*.pdf"):
+        try:
+            with open(pdf_path, "rb") as f:
+                content = f.read()
+            checksum = get_checksum(content)
+            
+            # Check if we already have a JSON for this file
+            safe_name = re.sub(r'[^\w\-_\.]', '_', pdf_path.name)
+            json_path = EXTRACTED_JSON_DIR / f"{safe_name}.json"
+            
+            if json_path.exists():
+                with open(json_path, "r") as f:
+                    data = json.load(f)
+                    
+                    # Check if it's the enriched format (list with file_checksum inside)
+                    if isinstance(data, list) and len(data) > 0:
+                        first_control = data[0]
+                        if first_control.get('file_checksum') == checksum:
+                            logger.info(f"Pre-populating cache for {pdf_path.name} from enriched JSON")
+                            save_to_cache(checksum, data)
+                        else:
+                            # If checksum doesn't match or is missing, we'll re-export with correct metadata later
+                            logger.info(f"Checksum mismatch for {pdf_path.name}, will skip cache population")
+                    elif isinstance(data, dict) and data.get('checksum') == checksum:
+                        # Convert from old dict format to enriched list format
+                        controls = data.get('controls', [])
+                        save_controls_to_json(pdf_path.name, controls, checksum)
+                        save_to_cache(checksum, controls)
+        except Exception as e:
+            logger.warning(f"Failed to sync {pdf_path.name} to cache: {e}")
+
 # Global state
 config = None
 extractor = None
@@ -149,6 +237,9 @@ async def startup_event():
         )
         logger.info(f"Compliance extractor initialized (Anthropic: {bool(config.anthropic_api_key)}, OpenCode Zen: {config.opencode_enabled}, OpenAI: {config.openai_enabled})")
         
+        # Sync existing PDFs to cache
+        sync_existing_pdfs_to_cache()
+        
         # Start WebSocket heartbeat task
         asyncio.create_task(start_heartbeat_task())
         logger.info("WebSocket heartbeat task started")
@@ -187,6 +278,8 @@ async def startup_event():
         controls = vector_store.get_all_controls() if vector_store else []
         if controls:
             tracker.register_controls(controls)
+            # Auto-export to JSON if not already there
+            save_controls_to_json("boot_sync", controls)
             logger.info(f"Compliance tracker initialized with {len(controls)} controls")
         else:
             logger.info("Compliance tracker initialized (no controls loaded)")
@@ -261,8 +354,21 @@ async def upload_pdf(file: UploadFile = File(...)):
             f.write(content)
         logger.info(f"Saved PDF to {pdf_path}")
         
-        # Extract controls (offload to thread as it's CPU bound and blocking)
-        controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
+        # Check cache first
+        checksum = get_checksum(content)
+        cached_controls = get_cached_controls(checksum)
+        
+        if cached_controls:
+            logger.info(f"Using cached controls for {file.filename} (Checksum: {checksum[:8]})")
+            controls = cached_controls
+        else:
+            # Extract controls (offload to thread as it's CPU bound and blocking)
+            controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
+            # Save to cache
+            save_to_cache(checksum, controls)
+        
+        # Always export to JSON (with checksum)
+        save_controls_to_json(file.filename, controls, checksum)
         
         if not controls:
             raise HTTPException(status_code=400, detail="No controls extracted from PDF")
@@ -377,13 +483,25 @@ async def ingest_all_pdfs():
                 with open(pdf_path, "rb") as f:
                     content = f.read()
                 
-                # Extract controls (offload to thread)
-                controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
+                # Check cache
+                checksum = get_checksum(content)
+                cached_controls = get_cached_controls(checksum)
+                
+                if cached_controls:
+                    logger.info(f"Using cached controls for {pdf_path.name} (Checksum: {checksum[:8]})")
+                    controls = cached_controls
+                else:
+                    # Extract controls (offload to thread)
+                    controls = await asyncio.to_thread(extractor.extract_from_pdf_bytes, content)
+                    # Save to cache
+                    save_to_cache(checksum, controls)
                 
                 if controls:
                     all_controls.extend(controls)
                     processed_files.append(pdf_path.name)
-                    logger.info(f"Extracted {len(controls)} controls from {pdf_path.name}")
+                    # Export to JSON (with checksum)
+                    save_controls_to_json(pdf_path.name, controls, checksum)
+                    logger.info(f"Processed {len(controls)} controls from {pdf_path.name}")
                 else:
                     logger.warning(f"No controls extracted from {pdf_path.name}")
                     

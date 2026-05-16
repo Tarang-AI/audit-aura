@@ -10,6 +10,7 @@ import requests
 from pypdf import PdfReader
 import pdfplumber
 from openai import OpenAI
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -87,82 +88,44 @@ class ComplianceExtractor:
         elif self.openai_enabled and not self.client:
             raise ValueError("OpenAI is enabled but API key is not configured")
         self.extraction_prompt = """
-You are a cybersecurity compliance control extraction engine.
-Extract all compliance controls found in the text.
-Return ONLY valid JSON.
+You are a world-class Cybersecurity Compliance Auditor and Data Scientist.
+Your task is to extract compliance controls from audit documents with surgical precision.
 
-Rules:
-- No markdown
-- No explanations
-- No commentary
-- No prose outside JSON
-- Output must be parseable with json.loads()
+### EXTRACTION RULES:
+1. **IDENTIFY AUDIT STANDARD**: Locate the specific standard (e.g., SOC 2 Type II, BSI C5:2020, ISO/IEC 27001:2022). Do NOT use 'Custom' or 'Unknown'.
+2. **CONTROL IDs**: Extract the EXACT alphanumeric ID (e.g., CC6.1, OPS-01, A.5.1). Do NOT generate arbitrary numbers.
+3. **CATEGORIES**: Group controls into professional compliance domains:
+   - Access Control & Identity
+   - Network & Infrastructure Security
+   - Data Protection & Encryption
+   - Operational Security & Change Management
+   - Governance, Risk & Compliance (GRC)
+   - Physical & Environmental Security
+   - Incident Response & Business Continuity
+4. **DESCRIPTIONS**: Provide a detailed, professional summary of the requirement. DO NOT truncate.
+5. **TITLES**: Create a clear, high-level name for the control.
 
-If no controls exist, return:
-{{"controls":[]}}
-
-Required schema:
+### OUTPUT FORMAT:
+Return ONLY valid JSON. No prose. No markdown.
 
 {{
   "controls": [
     {{
-      "control_id": "SOC2-CC6.1",
-      "description": "Clear control description",
-      "condition": "event.field == value",
-      "severity": "critical",
-      "remediation": "Specific remediation action",
-      "category": "Access Control",
-      "standard": "SOC2",
+      "control_id": "C5-OPS-01",
+      "title": "Change Management Process",
+      "description": "The provider implements a formal change management process to ensure that all changes to information systems, including software and hardware, are documented, tested, and approved prior to implementation.",
+      "condition": "exists(event.change_id) and event.status == 'approved'",
+      "severity": "high",
+      "remediation": "Review unapproved changes and enforce the formal change management workflow.",
+      "category": "Operational Security & Change Management",
+      "standard": "C5",
       "control_type": "preventive",
-      "evidence_required": "Audit evidence",
+      "evidence_required": "Change request logs and approval records",
       "automatable": true
     }}
   ]
 }}
 
-- control_id:
-  MUST extract the EXACT control ID from the document (e.g., CC1.1, C5-01, ISO-A.5.1).
-  DO NOT use generic "001" or similar if a real ID exists.
-  If no ID exists, generate a descriptive one: [STANDARD]-[ABBREVIATED-CATEGORY]-[NUMBER].
-
-- description:
-  Provide a COMPREHENSIVE and CLEAR description of the control requirement.
-  Include context from the document.
-  DO NOT use placeholders like "001".
-
-- condition:
-  Must be machine-readable.
-  Allowed patterns:
-    event.field == value
-    event.field != value
-    exists(event.field)
-    not exists(event.field)
-    event.field >= value
-    event.field <= value
-
-- category:
-  Identify the specific compliance category (e.g., Access Control, Encryption, Network Security).
-
-- standard:
-  Identify the audit standard (e.g., SOC2, ISO27001, C5, GDPR).
-
-- severity:
-  Must be one of: critical, high, medium, low.
-
-- control_type:
-  Must be one of:
-    preventive
-    detective
-    corrective
-
-- automatable:
-  Must be true or false
-
-- Keep descriptions concise.
-- Keep remediation concise.
-- Avoid duplicate controls.
-- Do not invent unsupported controls.
-- Preserve security intent.
 
 Text:
 {text}
@@ -176,7 +139,7 @@ Text:
             
             response = self.anthropic_client.messages.create(
                 model=self.anthropic_model,
-                max_tokens=2000,
+                max_tokens=4000,
                 temperature=0,
                 system="You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON objects containing a 'controls' array.",
                 messages=[
@@ -187,25 +150,44 @@ Text:
                 ]
             )
             
-            content = response.content[0].text
+            # Handle multiple content blocks (some might be ThinkingBlocks or TextBlocks)
+            content = ""
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    content = block.text
+                    break
+            
             if not content:
+                logger.warning("No text content found in Anthropic response")
                 return []
             
-            # Clean markdown if present
-            cleaned = re.sub(r'```(?:json)?|```', '', content).strip()
+            # Clean markdown and common LLM prose
+            cleaned = content.strip()
+            if "```json" in cleaned:
+                cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+            elif "```" in cleaned:
+                cleaned = cleaned.split("```")[1].split("```")[0].strip()
             
-            # Extract JSON object safely
+            # Find the first { and last } to isolate JSON
             start = cleaned.find('{')
             end = cleaned.rfind('}')
             if start != -1 and end != -1:
                 cleaned = cleaned[start:end + 1]
             
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict) and 'controls' in parsed:
-                return parsed['controls']
-            elif isinstance(parsed, list):
-                return parsed
-            return []
+            try:
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, dict) and 'controls' in parsed:
+                    return parsed['controls']
+                elif isinstance(parsed, list):
+                    return parsed
+                return []
+            except json.JSONDecodeError as je:
+                logger.error(f"JSON Decode Error at char {je.pos}: {je.msg}")
+                # Try a very aggressive recovery: find all {} objects that look like controls
+                recovered = self._recover_json_controls(cleaned)
+                if recovered:
+                    logger.info(f"Recovered {len(recovered)} controls from malformed JSON")
+                return recovered
         except Exception as e:
             logger.error(f"Anthropic extraction failed: {e}")
             return []
@@ -626,6 +608,8 @@ Text:
                 logger.error("Failed to extract text from PDF")
                 return []
             
+            logger.info(f"Extracted {len(text)} characters from PDF")
+            
             # Extract controls using AI
             try:
                 return self._extract_controls_with_ai(text)
@@ -699,66 +683,67 @@ Text:
             logger.warning(f"pdfplumber extraction failed: {e}")
             return ""
     
-    def _extract_controls_with_ai(self, text: str, chunk_size: int = 8000) -> List[Dict[str, Any]]:
-        """
-        Extract controls from text using AI
-        
-        Args:
-            text: Extracted text from PDF
-            chunk_size: Maximum characters per chunk
-            
-        Returns:
-            List of extracted controls
-        """
-        import json
-        
+    def _process_chunk(self, i: int, chunk: str, total: int) -> List[Dict[str, Any]]:
+        """Helper to process a single chunk in a thread"""
         try:
-            # Split text into chunks if too long
+            logger.info(f"Processing chunk {i+1}/{total}")
+            
+            # Use only the configured extraction method
+            if self.anthropic_enabled:
+                if not self.anthropic_client:
+                    return []
+                return self._extract_with_anthropic(chunk)
+
+            elif self.opencode_enabled:
+                if not self.opencode_client:
+                    return []
+                return self._extract_with_opencode(chunk)
+
+            elif self.lm_studio_enabled:
+                if not self.lm_studio_available:
+                    return []
+                return self._extract_with_lm_studio(chunk)
+
+            elif self.openai_enabled:
+                if not self.client:
+                    return []
+                return self._extract_with_openai(chunk)
+
+            elif self.ollama_enabled:
+                if not self.ollama_available:
+                    return []
+                return self._extract_with_ollama(chunk)
+            
+            return []
+        except Exception as e:
+            logger.error(f"Error processing chunk {i+1}: {e}")
+            return []
+
+    def _extract_controls_with_ai(self, text: str, chunk_size: int = 2000) -> List[Dict[str, Any]]:
+        """
+        Extract controls from text using AI (Parallel Processing)
+        """
+        try:
+            # Split text into chunks
             chunks = self._split_text(text, chunk_size)
             all_controls = []
+            total_chunks = len(chunks)
             
-            for i, chunk in enumerate(chunks):
-                logger.info(f"Processing chunk {i+1}/{len(chunks)}")
+            logger.info(f"Starting parallel extraction for {total_chunks} chunks using 5 workers")
+            
+            # Process chunks in parallel
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                # Submit all chunks to the executor
+                futures = [executor.submit(self._process_chunk, i, chunk, total_chunks) for i, chunk in enumerate(chunks)]
                 
-                prompt = self.extraction_prompt.format(text=chunk)
-                chunk_controls = None
-                
-                # Use only the configured extraction method
-                if self.anthropic_enabled:
-                    if not self.anthropic_client:
-                        raise ValueError("Anthropic/OpenCode Zen is enabled but API key is not configured")
-                    logger.info(f"Using Anthropic/OpenCode Zen for chunk {i+1}")
-                    chunk_controls = self._extract_with_anthropic(chunk)
-
-                elif self.opencode_enabled:
-                    if not self.opencode_client:
-                        raise ValueError("OpenCode Zen is enabled but API key is not configured")
-                    logger.info(f"Using OpenCode Zen for chunk {i+1}")
-                    chunk_controls = self._extract_with_opencode(chunk)
-
-                elif self.lm_studio_enabled:
-                    if not self.lm_studio_available:
-                        raise ValueError(f"LM Studio is enabled but not available at {self.lm_studio_host}")
-                    logger.info(f"Using LM Studio for chunk {i+1}")
-                    chunk_controls = self._extract_with_lm_studio(chunk)
-
-                elif self.openai_enabled:
-                    if not self.client:
-                        raise ValueError("OpenAI is enabled but API key is not configured")
-                    logger.info(f"Using OpenAI for chunk {i+1}")
-                    chunk_controls = self._extract_with_openai(chunk)
-
-                elif self.ollama_enabled:
-                    if not self.ollama_available:
-                        raise ValueError(f"Ollama is enabled but not available at {self.ollama_host}")
-                    logger.info(f"Using Ollama for chunk {i+1}")
-                    chunk_controls = self._extract_with_ollama(chunk)
-                
-                # Add controls to results
-                if chunk_controls and isinstance(chunk_controls, list):
-                    all_controls.extend(chunk_controls)
-                else:
-                    logger.error(f"No controls extracted from chunk {i+1}")
+                # Gather results as they complete
+                for future in futures:
+                    try:
+                        chunk_controls = future.result()
+                        if chunk_controls and isinstance(chunk_controls, list):
+                            all_controls.extend(chunk_controls)
+                    except Exception as e:
+                        logger.error(f"Failed to retrieve results for chunk: {e}")
             
             # Validate we got controls
             if not all_controls:
@@ -783,65 +768,55 @@ Text:
     
     def _extract_controls_fallback(self, text: str) -> List[Dict[str, Any]]:
         """
-        Fallback extraction using regex patterns when AI fails.
-        Useful for structured compliance documents.
+        Improved fallback extraction using regex patterns for common control formats
         """
         controls = []
         
-        # Pattern for SOC2/ISO-style controls: ID followed by description and severity
-        # Example: SOC2-CC1.1 - description - high - category
-        pattern = r'(SOC2-[A-Z0-9\.]+|ISO-[0-9\.]+|CTRL-[0-9]+)[\s\:\-]+(.*?)(?=\n(?:SOC2|ISO|CTRL|$))'
-        matches = re.finditer(pattern, text, re.DOTALL | re.IGNORECASE)
+        # Patterns for IDs like CC6.1, OPS-01, A.5.1
+        id_patterns = [
+            r'([A-Z]{1,4}\s?\d{1,3}(?:\.\d{1,3})*)',  # CC6.1, A.5.1
+            r'([A-Z]{2,5}-\d{2,3})',                 # OPS-01
+            r'(?:Control|Requirement)\s?#?\s?(\d{1,3}(?:\.\d{1,3})*)' # Control 1.1
+        ]
         
-        for i, match in enumerate(matches):
-            cid = match.group(1).strip()
-            content = match.group(2).strip()
-            
-            # Try to split content into description/severity/category if possible
-            lines = [l.strip() for l in content.split('\n') if l.strip()]
-            description = lines[0] if lines else "No description available"
-            
-            severity = "medium"
-            category = "General"
-            
-            for line in lines[1:]:
-                l_lower = line.lower()
-                if any(s in l_lower for s in ['critical', 'high', 'medium', 'low']):
-                    severity = l_lower
-                elif len(line) > 3:
-                    category = line
-            
-            controls.append({
-                "control_id": cid,
-                "description": description,
-                "condition": "exists(event.status)",  # Default condition
-                "severity": severity,
-                "remediation": f"Verify compliance for {cid}",
-                "category": category,
-                "standard": "SOC2" if "SOC2" in cid.upper() else "Compliance",
-                "control_type": "detective",
-                "evidence_required": "Log evidence",
-                "automatable": True
-            })
+        # Detect standard
+        standard = "Custom"
+        if re.search(r'SOC\s?2', text, re.I): standard = "SOC2"
+        elif re.search(r'C5', text, re.I): standard = "C5"
+        elif re.search(r'ISO\s?27001', text, re.I): standard = "ISO27001"
         
-        # If no regex matches, try a simpler line-based split for very basic documents
-        if not controls and len(text.strip()) > 50:
-            lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 20]
-            for i, line in enumerate(lines[:10]):
+        lines = text.split('\n')
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if len(line) < 30: continue
+            
+            found_id = None
+            for pattern in id_patterns:
+                match = re.search(pattern, line)
+                if match:
+                    found_id = match.group(1)
+                    break
+            
+            if found_id or (len(line) > 50 and i % 10 == 0): # Extract every 10th long line as a fallback
+                control_id = found_id if found_id else f"{standard}-{i}"
                 controls.append({
-                    "control_id": f"EXTRACTED-{i+1:03d}",
+                    "control_id": control_id,
+                    "title": line[:50] + "..." if len(line) > 50 else line,
                     "description": line,
                     "condition": "exists(event.status)",
                     "severity": "medium",
-                    "remediation": "Review compliance requirement",
-                    "category": "General",
-                    "standard": "Custom",
+                    "remediation": f"Verify compliance for {control_id}",
+                    "category": "Governance, Risk & Compliance (GRC)",
+                    "standard": standard,
                     "control_type": "detective",
-                    "evidence_required": "Manual review",
-                    "automatable": False
+                    "evidence_required": "Log evidence",
+                    "automatable": True
                 })
-                
+            
+            if len(controls) >= 50: break
+            
         return controls
+
 
 
     def _get_mock_controls(self) -> List[Dict[str, Any]]:
@@ -874,54 +849,125 @@ Text:
         ]
 
     def _split_text(self, text: str, chunk_size: int) -> List[str]:
-        """Split text into chunks"""
+        """Split text into chunks of maximum chunk_size"""
         if len(text) <= chunk_size:
             return [text]
         
         chunks = []
-        current_chunk = []
-        current_size = 0
+        # Split by double newlines first (paragraphs)
+        parts = re.split(r'\n\n+', text)
         
-        # Split by paragraphs
-        paragraphs = text.split('\n\n')
-        
-        for para in paragraphs:
-            para_size = len(para)
-            
-            if current_size + para_size > chunk_size and current_chunk:
-                chunks.append('\n\n'.join(current_chunk))
-                current_chunk = [para]
-                current_size = para_size
+        current_chunk = ""
+        for part in parts:
+            if len(part) > chunk_size:
+                # Part itself is too big, split by single newline
+                sub_parts = part.split('\n')
+                for sub_part in sub_parts:
+                    if len(sub_part) > chunk_size:
+                        # Even single line is too big, split by characters
+                        for i in range(0, len(sub_part), chunk_size):
+                            if current_chunk:
+                                chunks.append(current_chunk.strip())
+                                current_chunk = ""
+                            chunks.append(sub_part[i:i+chunk_size].strip())
+                    elif len(current_chunk) + len(sub_part) + 1 > chunk_size:
+                        chunks.append(current_chunk.strip())
+                        current_chunk = sub_part
+                    else:
+                        current_chunk = f"{current_chunk}\n{sub_part}" if current_chunk else sub_part
+            elif len(current_chunk) + len(part) + 2 > chunk_size:
+                chunks.append(current_chunk.strip())
+                current_chunk = part
             else:
-                current_chunk.append(para)
-                current_size += para_size
-        
+                current_chunk = f"{current_chunk}\n\n{part}" if current_chunk else part
+                
         if current_chunk:
-            chunks.append('\n\n'.join(current_chunk))
-        
+            chunks.append(current_chunk.strip())
+            
         return chunks
 
+
+    def _recover_json_controls(self, text: str) -> List[Dict[str, Any]]:
+        """Attempt to recover control objects from malformed JSON string"""
+        controls = []
+        try:
+            import json
+            # Look for patterns like {"control_id": "...", ...}
+            # This is a last resort
+            potential_objects = re.findall(r'\{[^{}]*?"control_id"[^{}]*?\}', text, re.DOTALL)
+            for obj_str in potential_objects:
+                try:
+                    # Try to fix common issues like missing quotes or trailing commas
+                    fixed = re.sub(r',\s*\}', '}', obj_str)
+                    obj = json.loads(fixed)
+                    if 'control_id' in obj:
+                        controls.append(obj)
+                except:
+                    continue
+        except:
+            pass
+        return controls
+
+    def _extract_controls_fallback(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Improved fallback extraction using regex patterns for common control formats
+        """
+        controls = []
+        
+        # Patterns for IDs like CC6.1, OPS-01, A.5.1
+        id_patterns = [
+            r'([A-Z]{1,4}\s?\d{1,3}(?:\.\d{1,3})*)',  # CC6.1, A.5.1
+            r'([A-Z]{2,5}-\d{2,3})',                 # OPS-01
+            r'(?:Control|Requirement)\s?#?\s?(\d{1,3}(?:\.\d{1,3})*)' # Control 1.1
+        ]
+        
+        # Detect standard
+        standard = "Custom"
+        if re.search(r'SOC\s?2', text, re.I): standard = "SOC2"
+        elif re.search(r'C5', text, re.I): standard = "C5"
+        elif re.search(r'ISO\s?27001', text, re.I): standard = "ISO27001"
+        
+        lines = text.split('\n')
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if len(line) < 30: continue
+            
+            found_id = None
+            for pattern in id_patterns:
+                match = re.search(pattern, line)
+                if match:
+                    found_id = match.group(1)
+                    break
+            
+            if found_id or (len(line) > 50 and i % 10 == 0): # Extract every 10th long line as a fallback
+                control_id = found_id if found_id else f"{standard}-{i}"
+                controls.append({
+                    "control_id": control_id,
+                    "title": line[:50] + "..." if len(line) > 50 else line,
+                    "description": line,
+                    "condition": "exists(event.status)",
+                    "severity": "medium",
+                    "remediation": f"Verify compliance for {control_id}",
+                    "category": "General Security",
+                    "standard": standard,
+                    "control_type": "detective",
+                    "evidence_required": "Log evidence",
+                    "automatable": True
+                })
+            
+            if len(controls) >= 50: break
+            
+        return controls
 
 # Legacy function for backward compatibility
 def extract_controls_from_pdf(content: bytes, openai_api_key: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Extract controls from PDF content
-    
-    Args:
-        content: PDF file content as bytes
-        openai_api_key: OpenAI API key (optional, will use env var if not provided)
-        
-    Returns:
-        List of extracted controls
     """
     import os
     api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
-    
     if not api_key:
-        logger.error("OpenAI API key not provided")
         return []
-    
-    extractor = ComplianceExtractor(api_key)
+    extractor = ComplianceExtractor(openai_api_key=api_key, openai_enabled=True)
     return extractor.extract_from_pdf_bytes(content)
 
-# Made with Bob

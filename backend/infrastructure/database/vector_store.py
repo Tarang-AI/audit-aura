@@ -73,6 +73,7 @@ class VectorStore:
                     page_content=text,
                     metadata={
                         'control_id': control.get('control_id', ''),
+                        'title': control.get('title', ''),
                         'standard': control.get('standard', ''),
                         'category': control.get('category', ''),
                         'severity': control.get('severity', ''),
@@ -127,6 +128,7 @@ class VectorStore:
                     page_content=text,
                     metadata={
                         'control_id': control.get('control_id', ''),
+                        'title': control.get('title', ''),
                         'standard': control.get('standard', ''),
                         'category': control.get('category', ''),
                         'severity': control.get('severity', ''),
@@ -253,6 +255,7 @@ class VectorStore:
         """Create searchable text from control"""
         parts = [
             f"Control ID: {control.get('control_id', '')}",
+            f"Title: {control.get('title', '')}",
             f"Standard: {control.get('standard', '')}",
             f"Category: {control.get('category', '')}",
             f"Description: {control.get('description', '')}",

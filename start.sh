@@ -46,8 +46,22 @@ fi
 
 # Check for Local vs Docker mode
 USE_DOCKER=false
-if [[ "$1" == "--docker" ]]; then
-    USE_DOCKER=true
+CLEAR_DATA=false
+for arg in "$@"; do
+    if [[ "$arg" == "--docker" ]]; then
+        USE_DOCKER=true
+    fi
+    if [[ "$arg" == "--clear" ]]; then
+        CLEAR_DATA=true
+    fi
+done
+
+if [ "$CLEAR_DATA" = true ]; then
+    echo "🧹 Clearing existing data and logs..."
+    rm -rf backend/data/vector_store/*
+    rm -f backend/data/incidents.db
+    rm -f backend.log frontend.log
+    echo "✅ Data cleared"
 fi
 
 if [ "$USE_DOCKER" = true ]; then

@@ -22,6 +22,25 @@ export default defineConfig({
       '/ws': {
         target: 'ws://localhost:8000',
         ws: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            // Silently handle common proxy errors during backend restarts or high load
+            const errorMessage = err.message || '';
+            const errorCode = (err as any).code || '';
+            
+            const isSocketError = 
+              errorMessage.includes('EPIPE') || 
+              errorMessage.includes('ECONNRESET') || 
+              errorMessage.includes('ended by the other party') ||
+              errorCode === 'EPIPE' ||
+              errorCode === 'ECONNRESET';
+
+            if (isSocketError) {
+              return;
+            }
+            console.error('proxy error', err);
+          });
+        },
       },
       // Proxy backend endpoints directly
       '/controls': {
